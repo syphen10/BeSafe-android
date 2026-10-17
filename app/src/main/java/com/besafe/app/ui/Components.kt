@@ -66,50 +66,42 @@ fun AppCard(
     }
 }
 
-/**
- * Small rounded status label with a coloured dot, e.g. "Ready · 2 trusted contacts".
- * When [onClick] is set it becomes an action: tinted [container], a chevron, and a 48dp touch target.
- */
+/** Quiet one-line status under the greeting: a plain icon and text, no container. */
 @Composable
-fun StatusPill(
+fun StatusLine(text: String, icon: ImageVector, tint: Color, modifier: Modifier = Modifier) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Flat full-width row for something the user needs to fix, e.g. "Add a trusted contact  ›". */
+@Composable
+fun ActionRow(
     text: String,
-    dotColor: Color,
+    icon: ImageVector,
+    container: Color,
+    contentColor: Color,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    container: Color = MaterialTheme.colorScheme.surface,
-    contentColor: Color = MaterialTheme.colorScheme.onSurface,
-    onClick: (() -> Unit)? = null,
 ) {
-    val shape = CircleShape
-    val rowContent: @Composable () -> Unit = {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = container,
+        contentColor = contentColor,
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .heightIn(min = if (onClick != null) 48.dp else 0.dp)
-                .padding(horizontal = 14.dp, vertical = 8.dp),
+            modifier = Modifier.heightIn(min = 52.dp).padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            Box(Modifier.size(8.dp).clip(CircleShape).background(dotColor))
-            Spacer(Modifier.width(10.dp))
-            Text(text, style = MaterialTheme.typography.labelLarge, color = contentColor)
-            if (onClick != null) {
-                Spacer(Modifier.width(4.dp))
-                Icon(
-                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = contentColor,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(text, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, modifier = Modifier.size(20.dp))
         }
-    }
-    if (onClick != null) {
-        Surface(onClick = onClick, modifier = modifier, shape = shape, color = container) { rowContent() }
-    } else {
-        Surface(
-            modifier = modifier,
-            shape = shape,
-            color = container,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        ) { rowContent() }
     }
 }
 

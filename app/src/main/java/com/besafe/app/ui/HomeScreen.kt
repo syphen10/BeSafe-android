@@ -22,6 +22,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -128,25 +130,26 @@ private fun IdleContent(
             if (firstName.isEmpty()) greeting() else "${greeting()}, $firstName",
             style = MaterialTheme.typography.headlineMedium,
         )
-        // When something is missing the pill itself is the fix: tappable, tinted, with a chevron.
+        // When something is missing the status itself is the fix: a flat tappable row.
         when {
-            !permissionsOk -> StatusPill(
+            !permissionsOk -> ActionRow(
                 "Allow SMS & location access",
-                MaterialTheme.colorScheme.error,
+                Icons.Filled.LocationOn,
                 container = MaterialTheme.colorScheme.errorContainer,
                 contentColor = MaterialTheme.colorScheme.onErrorContainer,
                 onClick = onFixPermissions,
             )
-            contacts.isEmpty() -> StatusPill(
+            contacts.isEmpty() -> ActionRow(
                 "Add a trusted contact",
-                MaterialTheme.colorScheme.tertiary,
+                Icons.Filled.PersonAdd,
                 container = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                 onClick = onGoToContacts,
             )
-            else -> StatusPill(
+            else -> StatusLine(
                 "Ready · ${contacts.size} trusted contact${if (contacts.size == 1) "" else "s"}",
-                MaterialTheme.colorScheme.secondary,
+                Icons.Filled.CheckCircle,
+                tint = MaterialTheme.colorScheme.secondary,
             )
         }
     }
