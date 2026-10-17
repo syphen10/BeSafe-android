@@ -55,19 +55,21 @@ class CheckInService : Service() {
     }
 
     private fun startCheckIn(durationMs: Long) {
-        val endsAt = System.currentTimeMillis() + durationMs.coerceAtLeast(MIN_DURATION_MS)
+        val now = System.currentTimeMillis()
+        val endsAt = now + durationMs.coerceIn(MIN_DURATION_MS, MAX_DURATION_MS)
         if (!goForeground(Notifications.checkIn(this, endsAt))) return
-        runTimer(endsAt)
+        runTimer(now, endsAt)
     }
 
     private fun extend() {
-        val newEnd = when (val state = session.value) {
-            is SessionState.CheckIn -> state.endsAtMillis + EXTEND_MS
-            is SessionState.Grace -> System.currentTimeMillis() + EXTEND_MS
+        val now = System.currentTimeMillis()
+        val (start, newEnd) = when (val state = session.value) {
+            is SessionState.CheckIn -> state.startedAtMillis to state.endsAtMillis + EXTEND_MS
+            is SessionState.Grace -> now to now + EXTEND_MS
             else -> return
         }
         notify(Notifications.SESSION_ID, Notifications.checkIn(this, newEnd))
-        runTimer(newEnd)
+        runTimer(start, newEnd)
     }
 
     private fun markSafe() {
@@ -93,10 +95,10 @@ class CheckInService : Service() {
         timerJob = scope.launch { sendAlert(AlertReason.SOS) }
     }
 
-    private fun runTimer(endsAt: Long) {
+    private fun runTimer(startedAt: Long, endsAt: Long) {
         timerJob?.cancel()
         acquireWakeLock(endsAt - System.currentTimeMillis() + GRACE_MS + SEND_WAKE_MS)
-        session.value = SessionState.CheckIn(endsAt)
+        session.value = SessionState.CheckIn(startedAt, endsAt)
         timerJob = scope.launch {
             delayUntil(endsAt)
             val alertAt = System.currentTimeMillis() + GRACE_MS
@@ -174,6 +176,8 @@ class CheckInService : Service() {
         const val GRACE_MS = 60_000L
         private const val EXTEND_MS = 10 * 60_000L
         private const val MIN_DURATION_MS = 60_000L
+        const val MAX_MINUTES = 24 * 60
+        private const val MAX_DURATION_MS = MAX_MINUTES * 60_000L
         private const val SEND_WAKE_MS = 2 * 60_000L
 
         fun startCheckIn(context: Context, minutes: Int) {

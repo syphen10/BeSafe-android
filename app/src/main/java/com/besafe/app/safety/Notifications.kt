@@ -95,7 +95,8 @@ object Notifications {
 
     private fun base(context: Context, channel: String) =
         NotificationCompat.Builder(context, channel)
-            .setSmallIcon(R.drawable.ic_stat_shield)
+            .setSmallIcon(R.drawable.ic_stat_besafe)
+            .setColor(0xFF1E3A8A.toInt())
             .setContentIntent(openApp(context))
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 

@@ -15,9 +15,25 @@ import kotlinx.serialization.json.Json
 @Serializable
 data class TrustedContact(val name: String, val phone: String)
 
+enum class MessageKind { SOS, MISSED_CHECK_IN, SAFE }
+
+/** One alert as it was sent, for the Messages tab. */
+@Serializable
+data class SentMessage(
+    val timeMillis: Long,
+    val kind: MessageKind,
+    val text: String,
+    /** Display names of everyone the message was addressed to. */
+    val recipients: List<String>,
+    val deliveredTo: Int,
+    val mapsLink: String? = null,
+) {
+    val allSent get() = deliveredTo == recipients.size
+}
+
 private val Context.dataStore by preferencesDataStore(name = "besafe")
 
-/** Persists the user's name and trusted contacts on-device only — nothing leaves the phone except the alert SMS. */
+/** Persists the user's name, trusted contacts and message history on-device only. */
 class SettingsRepository(context: Context) {
 
     private val store = context.applicationContext.dataStore
@@ -27,16 +43,21 @@ class SettingsRepository(context: Context) {
 
     val userName: Flow<String> = store.data.map { it[USER_NAME].orEmpty() }
 
+    /** Newest first. */
+    val history: Flow<List<SentMessage>> = store.data.map { decodeHistory(it) }
+
     /** Adds [contact] unless a contact with the same number already exists. */
     suspend fun addContact(contact: TrustedContact) {
         store.edit { prefs ->
             val current = decodeContacts(prefs)
-            if (current.none { it.phone == contact.phone }) prefs.putContacts(current + contact)
+            if (current.none { it.phone == contact.phone }) prefs[CONTACTS] = json.encodeToString(current + contact)
         }
     }
 
     suspend fun removeContact(phone: String) {
-        store.edit { prefs -> prefs.putContacts(decodeContacts(prefs).filterNot { it.phone == phone }) }
+        store.edit { prefs ->
+            prefs[CONTACTS] = json.encodeToString(decodeContacts(prefs).filterNot { it.phone == phone })
+        }
     }
 
     suspend fun setUserName(name: String) {
@@ -44,17 +65,32 @@ class SettingsRepository(context: Context) {
         store.edit { it[USER_NAME] = name }
     }
 
+    suspend fun recordMessage(message: SentMessage) {
+        store.edit { prefs -> prefs.putHistory((listOf(message) + decodeHistory(prefs)).take(MAX_HISTORY)) }
+    }
+
+    suspend fun clearHistory() {
+        store.edit { it.remove(HISTORY) }
+    }
+
     private fun decodeContacts(prefs: Preferences): List<TrustedContact> =
         prefs[CONTACTS]?.let { raw ->
             runCatching { json.decodeFromString<List<TrustedContact>>(raw) }.getOrNull()
         }.orEmpty()
 
-    private fun MutablePreferences.putContacts(list: List<TrustedContact>) {
-        this[CONTACTS] = json.encodeToString(list)
+    private fun decodeHistory(prefs: Preferences): List<SentMessage> =
+        prefs[HISTORY]?.let { raw ->
+            runCatching { json.decodeFromString<List<SentMessage>>(raw) }.getOrNull()
+        }.orEmpty()
+
+    private fun MutablePreferences.putHistory(list: List<SentMessage>) {
+        this[HISTORY] = json.encodeToString(list)
     }
 
     private companion object {
         val CONTACTS = stringPreferencesKey("contacts")
         val USER_NAME = stringPreferencesKey("user_name")
+        val HISTORY = stringPreferencesKey("history")
+        const val MAX_HISTORY = 200
     }
 }

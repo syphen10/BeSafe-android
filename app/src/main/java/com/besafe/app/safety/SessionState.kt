@@ -7,8 +7,8 @@ enum class AlertReason { SOS, MISSED_CHECK_IN }
 sealed interface SessionState {
     data object Idle : SessionState
 
-    /** Check-in timer running; alert flow starts at [endsAtMillis]. */
-    data class CheckIn(val endsAtMillis: Long) : SessionState
+    /** Check-in timer running from [startedAtMillis]; alert flow starts at [endsAtMillis]. */
+    data class CheckIn(val startedAtMillis: Long, val endsAtMillis: Long) : SessionState
 
     /** Timer expired; the user has until [alertAtMillis] to confirm they're safe. */
     data class Grace(val alertAtMillis: Long) : SessionState

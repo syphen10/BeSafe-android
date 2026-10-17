@@ -16,12 +16,12 @@ class SmsSender(context: Context) {
         ContextCompat.checkSelfPermission(appContext, Manifest.permission.SEND_SMS) ==
             PackageManager.PERMISSION_GRANTED
 
-    /** @return how many numbers the message was handed to the radio for (not confirmed delivery). */
-    fun sendToAll(numbers: List<String>, message: String): Int {
-        if (!hasPermission()) return 0
-        val sms = smsManager() ?: return 0
+    /** @return the numbers the message was handed to the radio for (not confirmed delivery). */
+    fun sendToAll(numbers: List<String>, message: String): Set<String> {
+        if (!hasPermission()) return emptySet()
+        val sms = smsManager() ?: return emptySet()
         val parts = sms.divideMessage(message)
-        return numbers.count { number ->
+        return numbers.filterTo(mutableSetOf()) { number ->
             runCatching { sms.sendMultipartTextMessage(number, null, parts, null, null) }.isSuccess
         }
     }
