@@ -13,9 +13,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -52,19 +50,30 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.besafe.app.safety.SessionState
 import com.besafe.app.ui.ContactsScreen
 import com.besafe.app.ui.HomeScreen
-import com.besafe.app.ui.IntroOverlay
 import com.besafe.app.ui.MainViewModel
 import com.besafe.app.ui.MessagesScreen
 import com.besafe.app.ui.theme.BeSafeTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        // The splash stays only as long as startup actually takes, then gets out of the way fast.
+        installSplashScreen().setOnExitAnimationListener { splash ->
+            runCatching {
+                splash.iconView.animate().scaleX(1.12f).scaleY(1.12f).setDuration(SPLASH_EXIT_MS).start()
+            }
+            splash.view.animate()
+                .alpha(0f)
+                .setDuration(SPLASH_EXIT_MS)
+                .withEndAction { splash.remove() }
+                .start()
+        }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        // Only on a real cold start — not on rotation or when reopened from a notification mid-session.
-        val playIntro = savedInstanceState == null
-        setContent { BeSafeTheme { BeSafeRoot(playIntro) } }
+        setContent { BeSafeTheme { BeSafeRoot() } }
+    }
+
+    private companion object {
+        const val SPLASH_EXIT_MS = 220L
     }
 }
 
@@ -94,15 +103,13 @@ private fun Context.corePermissionsGranted() =
         (has(Manifest.permission.ACCESS_FINE_LOCATION) || has(Manifest.permission.ACCESS_COARSE_LOCATION))
 
 @Composable
-private fun BeSafeRoot(playIntro: Boolean, vm: MainViewModel = viewModel()) {
+private fun BeSafeRoot(vm: MainViewModel = viewModel()) {
     val context = LocalContext.current
     val session by vm.session.collectAsState()
     val contacts by vm.contacts.collectAsState()
     val userName by vm.userName.collectAsState()
     val history by vm.history.collectAsState()
 
-    // Skip the intro if a session is already live: the user needs the controls, not branding.
-    var showIntro by rememberSaveable { mutableStateOf(playIntro && session is SessionState.Idle) }
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
     var permissionsOk by remember { mutableStateOf(context.corePermissionsGranted()) }
     var askedOnce by rememberSaveable { mutableStateOf(false) }
@@ -118,9 +125,8 @@ private fun BeSafeRoot(playIntro: Boolean, vm: MainViewModel = viewModel()) {
             permissionsOk = context.corePermissionsGranted()
         }
     }
-    // Ask once the intro is out of the way, so the system dialog doesn't cover it.
-    LaunchedEffect(showIntro) {
-        if (!showIntro && !askedOnce && !permissionsOk) {
+    LaunchedEffect(Unit) {
+        if (!askedOnce && !permissionsOk) {
             askedOnce = true
             permissionLauncher.launch(requiredPermissions + optionalPermissions)
         }
@@ -197,10 +203,6 @@ private fun BeSafeRoot(playIntro: Boolean, vm: MainViewModel = viewModel()) {
                     )
                 }
             }
-        }
-
-        AnimatedVisibility(visible = showIntro, exit = fadeOut()) {
-            IntroOverlay(onFinished = { showIntro = false })
         }
     }
 }

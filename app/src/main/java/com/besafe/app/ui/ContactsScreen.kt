@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -84,7 +85,8 @@ fun ContactsScreen(
             Text("Trusted contacts", style = MaterialTheme.typography.titleMedium)
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            // Stacked full-width so the labels never clip on narrow phones or with large font sizes.
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
                         pickError = null
@@ -94,16 +96,19 @@ fun ContactsScreen(
                             showManual = true
                         }
                     },
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                 ) {
                     Icon(Icons.Filled.ContactPhone, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("From contacts")
+                    Spacer(Modifier.width(10.dp))
+                    Text("Choose from your contacts")
                 }
-                OutlinedButton(onClick = { showManual = true }, modifier = Modifier.weight(1f).height(48.dp)) {
+                OutlinedButton(
+                    onClick = { showManual = true },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                ) {
                     Icon(Icons.Filled.Dialpad, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Enter number")
+                    Spacer(Modifier.width(10.dp))
+                    Text("Type a phone number")
                 }
             }
             pickError?.let { Text(it, color = MaterialTheme.colorScheme.error) }

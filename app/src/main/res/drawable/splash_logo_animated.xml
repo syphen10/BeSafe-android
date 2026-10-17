@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Splash logo with a looping "lub-dub" heartbeat — doubles as the loading indicator
+     while the app starts (animated on Android 12+, static first frame on older versions). -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="108dp"
+            android:height="108dp"
+            android:viewportWidth="108"
+            android:viewportHeight="108">
+            <group
+                android:name="beat"
+                android:pivotX="54"
+                android:pivotY="58">
+                <group
+                    android:pivotX="54"
+                    android:pivotY="54"
+                    android:scaleX="0.86"
+                    android:scaleY="0.86"
+                    android:translateY="3">
+                    <path
+                        android:fillColor="#FFFFFF"
+                        android:pathData="M39,30m-8.5,0a8.5,8.5 0,1 1,17 0a8.5,8.5 0,1 1,-17 0" />
+                    <path
+                        android:fillColor="#FFFFFF"
+                        android:pathData="M31.5,27 C28,34 27,41 22,46.5 C27,46 31,43 33.5,38 Z" />
+                    <path
+                        android:fillColor="#FFFFFF"
+                        android:pathData="M53,46 C47,40 36,39 29,44 C20,51 20,64 29,73 C36,79 46,83 54,88 C49,81 41,75 37,68 C32,60 33,52 40,49 C44,47 49,47 53,46 Z" />
+                    <path
+                        android:fillColor="#FFC9D6"
+                        android:pathData="M68,41m-6.2,0a6.2,6.2 0,1 1,12.4 0a6.2,6.2 0,1 1,-12.4 0" />
+                    <path
+                        android:fillColor="#FFC9D6"
+                        android:pathData="M73.5,37.5 C77.5,37.5 80,40.5 81,45.5 C78,44.5 76,43.5 74.5,42.5 Z" />
+                    <path
+                        android:fillColor="#FFC9D6"
+                        android:pathData="M59,51 C66,47 75,48 80,54 C85,62 82,71 74,77 C67,82 60,85 54,88 C58,82 64,76 67,71 C71,64 71,57 65,54 C63,53 61,52 59,51 Z" />
+                </group>
+            </group>
+        </vector>
+    </aapt:attr>
+
+    <target android:name="beat">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="1100"
+                android:repeatCount="infinite">
+                <propertyValuesHolder
+                    android:propertyName="scaleX"
+                    android:valueType="floatType">
+                    <keyframe android:fraction="0" android:value="1" />
+                    <keyframe android:fraction="0.12" android:value="1.09" />
+                    <keyframe android:fraction="0.26" android:value="1" />
+                    <keyframe android:fraction="0.38" android:value="1.05" />
+                    <keyframe android:fraction="0.52" android:value="1" />
+                    <keyframe android:fraction="1" android:value="1" />
+                </propertyValuesHolder>
+                <propertyValuesHolder
+                    android:propertyName="scaleY"
+                    android:valueType="floatType">
+                    <keyframe android:fraction="0" android:value="1" />
+                    <keyframe android:fraction="0.12" android:value="1.09" />
+                    <keyframe android:fraction="0.26" android:value="1" />
+                    <keyframe android:fraction="0.38" android:value="1.05" />
+                    <keyframe android:fraction="0.52" android:value="1" />
+                    <keyframe android:fraction="1" android:value="1" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+</animated-vector>

@@ -29,6 +29,13 @@ android {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+        // Release-speed build for testing on a phone: optimised and not debuggable (debuggable apps
+        // start 2-4x slower), but signed with the debug key so it installs without the real keystore.
+        create("preview") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+        }
     }
 
     compileOptions {

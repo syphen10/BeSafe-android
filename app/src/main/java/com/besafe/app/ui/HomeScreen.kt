@@ -128,9 +128,22 @@ private fun IdleContent(
             if (firstName.isEmpty()) greeting() else "${greeting()}, $firstName",
             style = MaterialTheme.typography.headlineMedium,
         )
+        // When something is missing the pill itself is the fix: tappable, tinted, with a chevron.
         when {
-            !permissionsOk -> StatusPill("Permissions needed", MaterialTheme.colorScheme.error)
-            contacts.isEmpty() -> StatusPill("Add a trusted contact to get started", MaterialTheme.colorScheme.tertiary)
+            !permissionsOk -> StatusPill(
+                "Allow SMS & location access",
+                MaterialTheme.colorScheme.error,
+                container = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                onClick = onFixPermissions,
+            )
+            contacts.isEmpty() -> StatusPill(
+                "Add a trusted contact",
+                MaterialTheme.colorScheme.tertiary,
+                container = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                onClick = onGoToContacts,
+            )
             else -> StatusPill(
                 "Ready · ${contacts.size} trusted contact${if (contacts.size == 1) "" else "s"}",
                 MaterialTheme.colorScheme.secondary,
@@ -138,19 +151,13 @@ private fun IdleContent(
         }
     }
 
-    if (!permissionsOk) {
-        NoticeCard(
-            "Be Safe needs SMS and location access so it can text your contacts where you are.",
-            "Allow access",
-            onFixPermissions,
-        )
-    } else if (contacts.isEmpty()) {
-        NoticeCard("Choose who should hear from you if something goes wrong.", "Add contacts", onGoToContacts)
-    }
-
     SosButton(enabled = ready, onTriggered = onSos, modifier = Modifier.padding(vertical = 4.dp))
     Text(
-        "Hold to text your trusted contacts your live location.",
+        when {
+            !permissionsOk -> "SOS turns on once Be Safe can send SMS and see your location."
+            contacts.isEmpty() -> "SOS turns on once you've added someone to alert."
+            else -> "Hold to text your trusted contacts your live location."
+        },
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
@@ -303,20 +310,6 @@ private fun SafeButton(onSafe: () -> Unit) {
         modifier = Modifier.fillMaxWidth().height(64.dp),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
     ) { Text("I'm safe", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
-}
-
-@Composable
-private fun NoticeCard(text: String, action: String, onAction: () -> Unit) {
-    AppCard(containerColor = MaterialTheme.colorScheme.tertiaryContainer, bordered = false) {
-        Text(text, color = MaterialTheme.colorScheme.onTertiaryContainer)
-        Button(
-            onClick = onAction,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.tertiary,
-                contentColor = MaterialTheme.colorScheme.onTertiary,
-            ),
-        ) { Text(action) }
-    }
 }
 
 /** Large ring that drains as time runs out, with the remaining time in the middle. */

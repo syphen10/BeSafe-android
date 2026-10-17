@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -63,23 +66,50 @@ fun AppCard(
     }
 }
 
-/** Small rounded label with a coloured dot, e.g. "Ready · 2 trusted contacts". */
+/**
+ * Small rounded status label with a coloured dot, e.g. "Ready · 2 trusted contacts".
+ * When [onClick] is set it becomes an action: tinted [container], a chevron, and a 48dp touch target.
+ */
 @Composable
-fun StatusPill(text: String, dotColor: Color, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
+fun StatusPill(
+    text: String,
+    dotColor: Color,
+    modifier: Modifier = Modifier,
+    container: Color = MaterialTheme.colorScheme.surface,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
+    onClick: (() -> Unit)? = null,
+) {
+    val shape = CircleShape
+    val rowContent: @Composable () -> Unit = {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            modifier = Modifier
+                .heightIn(min = if (onClick != null) 48.dp else 0.dp)
+                .padding(horizontal = 14.dp, vertical = 8.dp),
         ) {
             Box(Modifier.size(8.dp).clip(CircleShape).background(dotColor))
-            Spacer(Modifier.width(8.dp))
-            Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.width(10.dp))
+            Text(text, style = MaterialTheme.typography.labelLarge, color = contentColor)
+            if (onClick != null) {
+                Spacer(Modifier.width(4.dp))
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
+    }
+    if (onClick != null) {
+        Surface(onClick = onClick, modifier = modifier, shape = shape, color = container) { rowContent() }
+    } else {
+        Surface(
+            modifier = modifier,
+            shape = shape,
+            color = container,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        ) { rowContent() }
     }
 }
 
