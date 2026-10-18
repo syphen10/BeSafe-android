@@ -4,13 +4,23 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
+import android.content.res.Configuration
+import android.graphics.Color
+import android.graphics.drawable.Animatable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.ProgressBar
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
@@ -35,15 +45,21 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
+import androidx.core.view.doOnPreDraw
+import kotlinx.coroutines.delay
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -54,26 +70,94 @@ import com.besafe.app.ui.MainViewModel
 import com.besafe.app.ui.MessagesScreen
 import com.besafe.app.ui.theme.BeSafeTheme
 
+/**
+ * Startup is staged so something is always moving on screen:
+ * 1. System splash (navy + logo) while the process starts.
+ * 2. A plain-View loading screen that looks identical but animates (heartbeat + spinner). It's
+ *    cheap to draw, and both animations run on the render thread, so they keep moving while
+ * 3. the Compose UI is built underneath; once it has drawn and the saved data has loaded, the
+ *    loading screen fades away.
+ */
 class MainActivity : ComponentActivity() {
+
+    private var loadingView: View? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        // The splash stays only as long as startup actually takes, then gets out of the way fast.
-        installSplashScreen().setOnExitAnimationListener { splash ->
-            runCatching {
-                splash.iconView.animate().scaleX(1.12f).scaleY(1.12f).setDuration(SPLASH_EXIT_MS).start()
-            }
-            splash.view.animate()
-                .alpha(0f)
-                .setDuration(SPLASH_EXIT_MS)
-                .withEndAction { splash.remove() }
-                .start()
-        }
+        // Our loading screen is pixel-identical to the system splash, so swap it out instantly.
+        installSplashScreen().setOnExitAnimationListener { it.remove() }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { BeSafeTheme { BeSafeRoot() } }
+
+        val root = FrameLayout(this)
+        val loading = buildLoadingView()
+        root.addView(loading, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        setContentView(root)
+        loadingView = loading
+        setLightSystemBars(false)
+
+        // Let the loading screen reach the display first, then build the real UI behind it.
+        loading.doOnPreDraw {
+            root.post {
+                val compose = ComposeView(this).apply {
+                    setContent { BeSafeTheme { BeSafeRoot(onReady = ::hideLoading) } }
+                }
+                root.addView(compose, 0, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+            }
+        }
+    }
+
+    private fun buildLoadingView(): View {
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+
+        return FrameLayout(this).apply {
+            setBackgroundColor(ContextCompat.getColor(context, R.color.brand_navy))
+            isClickable = true // swallow taps until the real UI is ready
+            // Same drawable and size as the system splash icon, so the hand-off is invisible.
+            addView(
+                ImageView(context).apply {
+                    setImageResource(R.drawable.splash_logo_animated)
+                    (drawable as? Animatable)?.start()
+                },
+                FrameLayout.LayoutParams(dp(SPLASH_ICON_DP), dp(SPLASH_ICON_DP), Gravity.CENTER),
+            )
+            addView(
+                ProgressBar(context, null, android.R.attr.progressBarStyleSmall).apply {
+                    isIndeterminate = true
+                    indeterminateTintList = ColorStateList.valueOf(Color.WHITE)
+                    alpha = 0.7f
+                    translationY = dp(150).toFloat()
+                },
+                FrameLayout.LayoutParams(dp(28), dp(28), Gravity.CENTER),
+            )
+        }
+    }
+
+    private fun hideLoading() {
+        val loading = loadingView ?: return
+        loadingView = null
+        val dark = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
+        setLightSystemBars(!dark)
+        loading.animate()
+            .alpha(0f)
+            .setDuration(LOADING_FADE_MS)
+            .withEndAction { (loading.parent as? ViewGroup)?.removeView(loading) }
+            .start()
+    }
+
+    /** White status/nav icons over the navy loading screen; theme-appropriate ones afterwards. */
+    private fun setLightSystemBars(light: Boolean) {
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = light
+            isAppearanceLightNavigationBars = light
+        }
     }
 
     private companion object {
-        const val SPLASH_EXIT_MS = 220L
+        /** Size the system uses for a splash icon without an icon background. */
+        const val SPLASH_ICON_DP = 288
+        const val LOADING_FADE_MS = 200L
     }
 }
 
@@ -82,6 +166,8 @@ private enum class Tab(val label: String, val icon: ImageVector) {
     Messages("Messages", Icons.AutoMirrored.Filled.Chat),
     Contacts("Contacts", Icons.Filled.People),
 }
+
+private const val READY_TIMEOUT_MS = 2_000L
 
 /** Permissions the core features can't work without. */
 private val requiredPermissions = arrayOf(
@@ -103,12 +189,27 @@ private fun Context.corePermissionsGranted() =
         (has(Manifest.permission.ACCESS_FINE_LOCATION) || has(Manifest.permission.ACCESS_COARSE_LOCATION))
 
 @Composable
-private fun BeSafeRoot(vm: MainViewModel = viewModel()) {
+private fun BeSafeRoot(onReady: () -> Unit, vm: MainViewModel = viewModel()) {
     val context = LocalContext.current
     val session by vm.session.collectAsState()
-    val contacts by vm.contacts.collectAsState()
-    val userName by vm.userName.collectAsState()
+    val profile by vm.profile.collectAsState()
+    val contacts = profile?.contacts.orEmpty()
+    val userName = profile?.userName.orEmpty()
     val history by vm.history.collectAsState()
+
+    // Reveal the UI once saved data is in (so nothing flickers from "empty" to real values) and
+    // that frame has been drawn. The timeout is a backstop so a slow disk never traps the user.
+    val currentOnReady by rememberUpdatedState(onReady)
+    LaunchedEffect(profile != null) {
+        if (profile != null) {
+            withFrameNanos { }
+            currentOnReady()
+        }
+    }
+    LaunchedEffect(Unit) {
+        delay(READY_TIMEOUT_MS)
+        currentOnReady()
+    }
 
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
     var permissionsOk by remember { mutableStateOf(context.corePermissionsGranted()) }
@@ -125,8 +226,8 @@ private fun BeSafeRoot(vm: MainViewModel = viewModel()) {
             permissionsOk = context.corePermissionsGranted()
         }
     }
-    LaunchedEffect(Unit) {
-        if (!askedOnce && !permissionsOk) {
+    LaunchedEffect(profile != null) {
+        if (profile != null && !askedOnce && !permissionsOk) {
             askedOnce = true
             permissionLauncher.launch(requiredPermissions + optionalPermissions)
         }

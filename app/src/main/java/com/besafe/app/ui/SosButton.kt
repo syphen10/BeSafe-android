@@ -1,7 +1,12 @@
 package com.besafe.app.ui
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -20,7 +25,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
@@ -37,10 +44,16 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
 private const val HOLD_MS = 2_000
+private const val IDLE_CYCLE_MS = 2_800
+
+/** How far the idle rings travel, as a multiple of the button's size. */
+private const val RING_REACH = 1.36f
+private const val RING_MAX_ALPHA = 0.16f
+private val RING_OFFSETS = floatArrayOf(0f, 0.5f)
 
 /**
  * Press-and-hold SOS: a ring fills over [HOLD_MS]; releasing early cancels, which prevents
- * pocket triggers. Two faint static rings give it presence without any glow effects.
+ * pocket triggers. While idle, soft rings ripple outward — calm motion, no glow.
  */
 @Composable
 fun SosButton(
@@ -59,13 +72,60 @@ fun SosButton(
     val content = if (enabled) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onSurfaceVariant
     val halo = if (enabled) red else MaterialTheme.colorScheme.outline
 
-    Box(contentAlignment = Alignment.Center, modifier = modifier.size(size * 1.36f)) {
-        Box(Modifier.size(size * 1.36f).clip(CircleShape).background(halo.copy(alpha = 0.06f)))
-        Box(Modifier.size(size * 1.18f).clip(CircleShape).background(halo.copy(alpha = 0.10f)))
+    // Idle motion only while SOS is usable: soft rings drift outward and fade (half a cycle apart)
+    // and the button breathes slightly. Values are read in draw/layer lambdas, so animating
+    // never recomposes.
+    val idle = rememberInfiniteTransition(label = "sosIdle")
+    val wave = if (enabled) {
+        idle.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(IDLE_CYCLE_MS, easing = LinearEasing)),
+            label = "wave",
+        )
+    } else {
+        null
+    }
+    val breathe = if (enabled) {
+        idle.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.025f,
+            animationSpec = infiniteRepeatable(
+                tween(IDLE_CYCLE_MS / 2, easing = FastOutSlowInEasing),
+                RepeatMode.Reverse,
+            ),
+            label = "breathe",
+        )
+    } else {
+        null
+    }
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .size(size * RING_REACH)
+            .drawBehind {
+                val phase = wave?.value ?: return@drawBehind
+                val buttonRadius = this.size.minDimension / 2 / RING_REACH
+                for (offset in RING_OFFSETS) {
+                    val p = (phase + offset) % 1f
+                    drawCircle(
+                        color = halo,
+                        radius = buttonRadius * (1f + (RING_REACH - 1f) * p),
+                        alpha = RING_MAX_ALPHA * (1f - p),
+                    )
+                }
+            },
+    ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(size)
+                .graphicsLayer {
+                    val scale = breathe?.value ?: 1f
+                    scaleX = scale
+                    scaleY = scale
+                }
                 .clip(CircleShape)
                 .background(fill)
                 .semantics { contentDescription = "SOS. Press and hold for 2 seconds to alert your contacts." }

@@ -12,6 +12,7 @@ import com.besafe.app.safety.SessionState
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -22,11 +23,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     val session: StateFlow<SessionState> = container.session.asStateFlow()
 
-    val contacts: StateFlow<List<TrustedContact>> = settings.contacts
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    /** Who the user is and who they alert. Null until the first read from disk completes. */
+    data class Profile(val userName: String, val contacts: List<TrustedContact>)
 
-    val userName: StateFlow<String> = settings.userName
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
+    // Started eagerly so the disk read overlaps with building the UI instead of following it.
+    val profile: StateFlow<Profile?> = combine(settings.userName, settings.contacts, ::Profile)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val history: StateFlow<List<SentMessage>> = settings.history
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -51,7 +53,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun addContact(name: String, rawPhone: String): String? {
         val phone = PhoneNumbers.normalize(rawPhone)
         if (!PhoneNumbers.isValid(phone)) return "That doesn't look like a valid phone number."
-        if (contacts.value.any { it.phone == phone }) return "That number is already a trusted contact."
+        if (profile.value?.contacts.orEmpty().any { it.phone == phone }) return "That number is already a trusted contact."
         val displayName = name.trim().ifEmpty { phone }
         viewModelScope.launch { settings.addContact(TrustedContact(displayName, phone)) }
         return null

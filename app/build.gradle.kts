@@ -29,12 +29,13 @@ android {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
-        // Release-speed build for testing on a phone: optimised and not debuggable (debuggable apps
-        // start 2-4x slower), but signed with the debug key so it installs without the real keystore.
-        create("preview") {
-            initWith(getByName("release"))
-            signingConfig = signingConfigs.getByName("debug")
-            matchingFallbacks += listOf("release")
+        // The build the user installs for testing. Debuggable apps run without ART's ahead-of-time
+        // compilation or baseline profiles and start 2-4x slower, so it's optimised like release
+        // and only differs in being signed with the debug key.
+        debug {
+            isDebuggable = false
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
@@ -73,7 +74,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 
-    debugImplementation("androidx.compose.ui:ui-tooling")
+    // Installs the bundled Compose baseline profiles on sideloaded APKs too, not just Play installs.
+    implementation("androidx.profileinstaller:profileinstaller:1.3.1")
 
     testImplementation("junit:junit:4.13.2")
 }
