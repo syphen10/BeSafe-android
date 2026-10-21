@@ -8,8 +8,24 @@
 /captures
 .externalNativeBuild
 .cxx
+
+# Machine-specific paths
 local.properties
+
+# Signing keys and their passwords — never commit, back these up privately instead
 *.keystore
 *.jks
 keystore.properties
 /keystore/
+
+# Any other secrets (API keys etc.) if added later
+secrets.properties
+*.env
+.env*
+google-services.json
+
+# Built apps and R8 mapping files (the mapping file reverses the obfuscation)
+*.apk
+*.aab
+mapping.txt
+/release-builds/
