@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -24,10 +26,31 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
+    // Upload key for Google Play. keystore.properties + the .jks are gitignored in the public repo
+    // and backed up only in the private repo; without them, release builds are simply unsigned.
+    val keystoreProps = Properties().apply {
+        val f = rootProject.file("keystore.properties")
+        if (f.exists()) f.inputStream().use { load(it) }
+    }
+    val hasUploadKey = keystoreProps.containsKey("storeFile")
+
+    signingConfigs {
+        create("release") {
+            if (hasUploadKey) {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (hasUploadKey) signingConfig = signingConfigs.getByName("release")
         }
         // The build the user installs for testing. Debuggable apps run without ART's ahead-of-time
         // compilation or baseline profiles and start 2-4x slower, so it's optimised like release

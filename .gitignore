@@ -24,6 +24,9 @@ secrets.properties
 .env*
 google-services.json
 
+# Private-repo-only material: Play Console notes, declarations, release checklist, sync tools
+/internal/
+
 # Built apps and R8 mapping files (the mapping file reverses the obfuscation)
 *.apk
 *.aab
