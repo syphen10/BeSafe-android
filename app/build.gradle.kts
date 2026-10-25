@@ -23,8 +23,8 @@ android {
         applicationId = "com.syphen.besafe"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
         vectorDrawables.useSupportLibrary = true
     }
 
@@ -101,6 +101,8 @@ dependencies {
 
     // Installs the bundled Compose baseline profiles on sideloaded APKs too, not just Play installs.
     implementation("androidx.profileinstaller:profileinstaller:1.3.1")
+    // Google Play In-App Review: lets users rate without leaving the app.
+    implementation("com.google.android.play:review-ktx:2.0.2")
 
     testImplementation("junit:junit:4.13.2")
 }

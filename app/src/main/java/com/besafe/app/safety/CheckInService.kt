@@ -77,13 +77,14 @@ class CheckInService : Service() {
         timerJob?.cancel()
         timerJob = null
         session.value = SessionState.Idle
-        if (previous is SessionState.AlertSent) {
-            // Contacts were already alerted — tell them to stand down before stopping.
-            scope.launch {
-                container.alerts.sendSafe()
-                finish(null)
+        scope.launch {
+            when (previous) {
+                // Contacts were already alerted — tell them to stand down.
+                is SessionState.AlertSent -> container.alerts.sendSafe()
+                // A check-in that ended well; feeds the "ask for a rating" moment.
+                is SessionState.CheckIn, is SessionState.Grace -> container.settings.recordSafeCheckIn()
+                else -> Unit
             }
-        } else {
             finish(null)
         }
     }

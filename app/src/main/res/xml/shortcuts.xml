@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the launcher icon → "SOS" jumps straight to the SOS button. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@mipmap/ic_shortcut_sos"
+        android:shortcutId="sos"
+        android:shortcutLongLabel="@string/shortcut_sos_long"
+        android:shortcutShortLabel="@string/shortcut_sos_short">
+        <!-- targetPackage must be the applicationId; targetClass is the code namespace. -->
+        <intent
+            android:action="com.besafe.app.action.OPEN_SOS"
+            android:targetClass="com.besafe.app.MainActivity"
+            android:targetPackage="com.syphen.besafe" />
+    </shortcut>
+</shortcuts>

@@ -60,6 +60,10 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.core.view.doOnPreDraw
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import android.app.Activity
+import com.besafe.app.ui.requestPlayReview
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -82,11 +86,15 @@ class MainActivity : ComponentActivity() {
 
     private var loadingView: View? = null
 
+    /** Bumped each time the launcher "SOS" shortcut opens the app. */
+    private val sosShortcutTaps = MutableStateFlow(0)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Our loading screen is pixel-identical to the system splash, so swap it out instantly.
         installSplashScreen().setOnExitAnimationListener { it.remove() }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        handleIntent(intent)
 
         val root = FrameLayout(this)
         val loading = buildLoadingView()
@@ -99,11 +107,22 @@ class MainActivity : ComponentActivity() {
         loading.doOnPreDraw {
             root.post {
                 val compose = ComposeView(this).apply {
-                    setContent { BeSafeTheme { BeSafeRoot(onReady = ::hideLoading) } }
+                    setContent {
+                        BeSafeTheme { BeSafeRoot(onReady = ::hideLoading, sosShortcutTaps = sosShortcutTaps) }
+                    }
                 }
                 root.addView(compose, 0, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent?.action == ACTION_OPEN_SOS) sosShortcutTaps.value++
     }
 
     private fun buildLoadingView(): View {
@@ -158,6 +177,7 @@ class MainActivity : ComponentActivity() {
         /** Size the system uses for a splash icon without an icon background. */
         const val SPLASH_ICON_DP = 288
         const val LOADING_FADE_MS = 200L
+        const val ACTION_OPEN_SOS = "com.besafe.app.action.OPEN_SOS"
     }
 }
 
@@ -168,6 +188,7 @@ private enum class Tab(val label: String, val icon: ImageVector) {
 }
 
 private const val READY_TIMEOUT_MS = 2_000L
+private const val REVIEW_DELAY_MS = 1_500L
 
 /** Permissions the core features can't work without. */
 private val requiredPermissions = arrayOf(
@@ -189,7 +210,11 @@ private fun Context.corePermissionsGranted() =
         (has(Manifest.permission.ACCESS_FINE_LOCATION) || has(Manifest.permission.ACCESS_COARSE_LOCATION))
 
 @Composable
-private fun BeSafeRoot(onReady: () -> Unit, vm: MainViewModel = viewModel()) {
+private fun BeSafeRoot(
+    onReady: () -> Unit,
+    sosShortcutTaps: StateFlow<Int>,
+    vm: MainViewModel = viewModel(),
+) {
     val context = LocalContext.current
     val session by vm.session.collectAsState()
     val profile by vm.profile.collectAsState()
@@ -236,6 +261,22 @@ private fun BeSafeRoot(onReady: () -> Unit, vm: MainViewModel = viewModel()) {
     // An active session always takes over the screen, wherever the user was.
     LaunchedEffect(session) {
         if (session !is SessionState.Idle) tab = Tab.Home
+    }
+
+    // Launcher "SOS" shortcut: always land on the SOS button.
+    val shortcutTaps by sosShortcutTaps.collectAsState()
+    LaunchedEffect(shortcutTaps) {
+        if (shortcutTaps > 0) tab = Tab.Home
+    }
+
+    // Ask for a Play rating after a check-in ended safely — only once things are calm again.
+    val reviewDue by vm.reviewDue.collectAsState()
+    LaunchedEffect(reviewDue, session) {
+        if (reviewDue && session is SessionState.Idle) {
+            delay(REVIEW_DELAY_MS)
+            (context as? Activity)?.let { requestPlayReview(it) }
+            vm.markReviewRequested()
+        }
     }
 
     Box(Modifier.fillMaxSize()) {

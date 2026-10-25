@@ -2,4 +2,5 @@
     <color name="brand_navy">#1E3A8A</color>
     <color name="ic_launcher_background">#1E3A8A</color>
     <color name="app_background">#F6F7FB</color>
+    <color name="sos_red">#D32F2F</color>
 </resources>

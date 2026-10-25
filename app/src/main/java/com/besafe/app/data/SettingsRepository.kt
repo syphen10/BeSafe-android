@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -73,6 +74,24 @@ class SettingsRepository(context: Context) {
         store.edit { it.remove(HISTORY) }
     }
 
+    /**
+     * True when the user has just had a good experience worth asking a rating for: their 2nd and
+     * 10th check-ins ended safely. Never tied to an SOS or a missed check-in.
+     */
+    val reviewDue: Flow<Boolean> = store.data.map { prefs ->
+        val safe = prefs[SAFE_CHECK_INS] ?: 0
+        val askedAt = prefs[REVIEW_ASKED_AT] ?: 0
+        REVIEW_MILESTONES.any { safe >= it && askedAt < it }
+    }
+
+    suspend fun recordSafeCheckIn() {
+        store.edit { it[SAFE_CHECK_INS] = (it[SAFE_CHECK_INS] ?: 0) + 1 }
+    }
+
+    suspend fun markReviewRequested() {
+        store.edit { it[REVIEW_ASKED_AT] = it[SAFE_CHECK_INS] ?: 0 }
+    }
+
     private fun decodeContacts(prefs: Preferences): List<TrustedContact> =
         prefs[CONTACTS]?.let { raw ->
             runCatching { json.decodeFromString<List<TrustedContact>>(raw) }.getOrNull()
@@ -91,6 +110,9 @@ class SettingsRepository(context: Context) {
         val CONTACTS = stringPreferencesKey("contacts")
         val USER_NAME = stringPreferencesKey("user_name")
         val HISTORY = stringPreferencesKey("history")
+        val SAFE_CHECK_INS = intPreferencesKey("safe_check_ins")
+        val REVIEW_ASKED_AT = intPreferencesKey("review_asked_at")
         const val MAX_HISTORY = 200
+        val REVIEW_MILESTONES = listOf(2, 10)
     }
 }

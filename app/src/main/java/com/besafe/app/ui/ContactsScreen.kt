@@ -49,6 +49,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.besafe.app.data.TrustedContact
+import com.besafe.app.safety.PhoneNumbers
 
 @Composable
 fun ContactsScreen(
@@ -63,11 +64,22 @@ fun ContactsScreen(
     var showManual by rememberSaveable { mutableStateOf(false) }
     var pickError by remember { mutableStateOf<String?>(null) }
     var pendingRemoval by remember { mutableStateOf<TrustedContact?>(null) }
+    var inviteFor by remember { mutableStateOf<TrustedContact?>(null) }
+
+    // After a successful add, offer to tell the person (and share the app with them).
+    val addAndOfferInvite: (String, String) -> String? = { name, rawPhone ->
+        onAdd(name, rawPhone).also { error ->
+            if (error == null) {
+                val phone = PhoneNumbers.normalize(rawPhone)
+                inviteFor = TrustedContact(name.trim().ifEmpty { phone }, phone)
+            }
+        }
+    }
 
     val picker = rememberLauncherForActivityResult(PickPhoneContact()) { uri ->
         if (uri != null) {
             val picked = readPickedContact(context, uri)
-            pickError = if (picked == null) "Couldn't read that contact." else onAdd(picked.first, picked.second)
+            pickError = if (picked == null) "Couldn't read that contact." else addAndOfferInvite(picked.first, picked.second)
         }
     }
 
@@ -149,7 +161,27 @@ fun ContactsScreen(
     }
 
     if (showManual) {
-        ManualContactDialog(onDismiss = { showManual = false }, onSave = onAdd)
+        ManualContactDialog(onDismiss = { showManual = false }, onSave = addAndOfferInvite)
+    }
+    inviteFor?.let { contact ->
+        val first = contact.name.substringBefore(' ')
+        AlertDialog(
+            onDismissRequest = { inviteFor = null },
+            title = { Text("Let $first know?") },
+            text = {
+                Text(
+                    "Send $first a quick text so an alert from you is never a surprise. " +
+                        "You'll see the message before it's sent.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    openInviteSms(context, contact.phone, contact.name)
+                    inviteFor = null
+                }) { Text("Send a text") }
+            },
+            dismissButton = { TextButton(onClick = { inviteFor = null }) { Text("Not now") } },
+        )
     }
     pendingRemoval?.let { contact ->
         AlertDialog(

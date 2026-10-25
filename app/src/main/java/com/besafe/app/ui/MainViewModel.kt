@@ -33,6 +33,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val history: StateFlow<List<SentMessage>> = settings.history
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val reviewDue: StateFlow<Boolean> = settings.reviewDue
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun markReviewRequested() {
+        viewModelScope.launch { settings.markReviewRequested() }
+    }
+
     fun startCheckIn(minutes: Int) = CheckInService.startCheckIn(getApplication(), minutes)
 
     fun sos() = CheckInService.sos(getApplication())

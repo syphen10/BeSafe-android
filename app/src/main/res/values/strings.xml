@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Be Safe</string>
+    <string name="shortcut_sos_short">SOS</string>
+    <string name="shortcut_sos_long">Open SOS</string>
 </resources>

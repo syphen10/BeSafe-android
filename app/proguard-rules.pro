@@ -4,6 +4,9 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
+# Play In-App Review (review-ktx) references a compile-time-only annotation that isn't shipped.
+-dontwarn com.google.android.gms.common.annotation.NoNullnessRewrite
+
 # --- Make the shipped app harder to reverse-engineer -----------------------------------------
 # Move every renamed class into one flat, meaningless package (no com/besafe/app/safety/... tree).
 -repackageclasses ''
