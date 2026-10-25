@@ -18,7 +18,9 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.besafe.app"
+        // Store identity (permanent once on Play). "com.besafe.app" was already registered on Android
+        // by someone else, so the Play listing uses this unique ID; the code namespace is unchanged.
+        applicationId = "com.syphen.besafe"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
