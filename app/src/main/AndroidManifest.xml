@@ -37,6 +37,10 @@
                 android:resource="@xml/shortcuts" />
         </activity>
 
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}" />
+
         <service
             android:name=".safety.CheckInService"
             android:exported="false"

@@ -64,6 +64,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import android.app.Activity
 import com.besafe.app.ui.requestPlayReview
+import com.besafe.app.ads.Ads
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -158,6 +159,10 @@ class MainActivity : ComponentActivity() {
         val dark = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
             Configuration.UI_MODE_NIGHT_YES
         setLightSystemBars(!dark)
+        // Ads (and the consent form, where required) only start once the app is fully on screen.
+        loading.postDelayed({
+            if (!isFinishing && !isDestroyed) Ads.start(this)
+        }, ADS_START_DELAY_MS)
         loading.animate()
             .alpha(0f)
             .setDuration(LOADING_FADE_MS)
@@ -178,6 +183,7 @@ class MainActivity : ComponentActivity() {
         const val SPLASH_ICON_DP = 288
         const val LOADING_FADE_MS = 200L
         const val ACTION_OPEN_SOS = "com.besafe.app.action.OPEN_SOS"
+        const val ADS_START_DELAY_MS = 1_500L
     }
 }
 

@@ -48,6 +48,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.collectAsState
+import com.besafe.app.ads.Ads
+import com.besafe.app.ads.InlineBannerAd
 import com.besafe.app.data.TrustedContact
 import com.besafe.app.safety.PhoneNumbers
 
@@ -65,6 +68,7 @@ fun ContactsScreen(
     var pickError by remember { mutableStateOf<String?>(null) }
     var pendingRemoval by remember { mutableStateOf<TrustedContact?>(null) }
     var inviteFor by remember { mutableStateOf<TrustedContact?>(null) }
+    val adPrivacyOptionsRequired by Ads.privacyOptionsRequired.collectAsState()
 
     // After a successful add, offer to tell the person (and share the app with them).
     val addAndOfferInvite: (String, String) -> String? = { name, rawPhone ->
@@ -158,6 +162,15 @@ fun ContactsScreen(
                 }
             }
         }
+        // Required in the EEA/UK: a way to change the ad-consent choice at any time.
+        if (adPrivacyOptionsRequired) {
+            item(key = "ad-privacy") {
+                TextButton(onClick = { (context as? Activity)?.let(Ads::showPrivacyOptions) }) {
+                    Text("Privacy & ad choices")
+                }
+            }
+        }
+        item(key = "ad") { InlineBannerAd(horizontalPadding = 20.dp) }
     }
 
     if (showManual) {

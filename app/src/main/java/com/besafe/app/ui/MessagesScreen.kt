@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.besafe.app.ads.InlineBannerAd
 import com.besafe.app.data.MessageKind
 import com.besafe.app.data.SentMessage
 import java.util.Calendar
@@ -88,6 +89,7 @@ fun MessagesScreen(messages: List<SentMessage>, onClear: () -> Unit, modifier: M
             }
             items(dayMessages, key = { it.timeMillis }) { MessageCard(it) }
         }
+        item(key = "ad") { InlineBannerAd(horizontalPadding = 20.dp) }
     }
 
     if (confirmClear) {
