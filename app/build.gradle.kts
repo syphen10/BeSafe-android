@@ -90,6 +90,15 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        // `gradlew testDebugUnitTest -PstoreShots=<dir> --tests "*StoreScreenshots*"` renders store
+        // screenshots into <dir>; without the property those tests are skipped.
+        unitTests.all {
+            it.systemProperty("storeShotsDir", (project.findProperty("storeShots") as String?) ?: "")
+        }
+    }
 }
 
 dependencies {
@@ -121,4 +130,10 @@ dependencies {
     implementation("com.google.android.ump:user-messaging-platform:4.0.0")
 
     testImplementation("junit:junit:4.13.2")
+    // Store screenshots rendered from the real Compose screens on the JVM (no emulator needed).
+    testImplementation(composeBom)
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    testImplementation("androidx.test.ext:junit:1.2.1")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

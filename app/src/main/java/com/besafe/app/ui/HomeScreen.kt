@@ -159,7 +159,7 @@ private fun IdleContent(
         when {
             !permissionsOk -> "SOS turns on once Be Safe can send SMS and see your location."
             contacts.isEmpty() -> "SOS turns on once you've added someone to alert."
-            else -> "Hold to text your trusted contacts your live location."
+            else -> "Hold to text your trusted contacts where you are."
         },
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
