@@ -1,6 +1,6 @@
 # Be Safe — Privacy Policy
 
-_Last updated: 29 October 2026_
+_Last updated: 15 November 2026_
 
 Be Safe is a personal safety app. It lets you send an SOS text message, with your location, to people you choose, and it can alert them automatically if you don't check in on time. This policy explains what information the app uses and what happens to it.
 
@@ -63,7 +63,7 @@ All information is stored privately on your device and is not included in device
 
 ## Children
 
-Be Safe is not directed at children under 13.
+Be Safe is a general-audience safety app that families can use together, for example a parent setting it up on a child's phone with themselves as a trusted contact. The app has no accounts and does not knowingly collect personal information from children: everything a user enters stays on their device, apart from the alerts they choose to send to their own trusted contacts. If you are a parent or guardian and have questions about your child's use of Be Safe, contact us using the details below.
 
 ## Changes
 
