@@ -69,6 +69,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.besafe.app.safety.SessionState
+import com.besafe.app.safety.SmsSender
 import com.besafe.app.ui.ContactsScreen
 import com.besafe.app.ui.HomeScreen
 import com.besafe.app.ui.MainViewModel
@@ -243,6 +244,7 @@ private fun BeSafeRoot(
     }
 
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
+    val smsCapable = remember { SmsSender(context).deviceCanSendSms() }
     var permissionsOk by remember { mutableStateOf(context.corePermissionsGranted()) }
     var askedOnce by rememberSaveable { mutableStateOf(false) }
 
@@ -316,6 +318,7 @@ private fun BeSafeRoot(
                         userName = userName,
                         contacts = contacts,
                         permissionsOk = permissionsOk,
+                        smsCapable = smsCapable,
                         onSos = vm::sos,
                         onStartCheckIn = vm::startCheckIn,
                         onSafe = vm::imSafe,

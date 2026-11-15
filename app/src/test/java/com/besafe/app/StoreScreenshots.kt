@@ -133,6 +133,7 @@ class StoreScreenshots {
             userName = "Sara",
             contacts = contacts,
             permissionsOk = true,
+            smsCapable = true,
             onSos = {},
             onStartCheckIn = {},
             onSafe = {},

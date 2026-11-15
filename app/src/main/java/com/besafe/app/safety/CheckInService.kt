@@ -1,7 +1,9 @@
 package com.besafe.app.safety
 
+import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -42,6 +44,7 @@ class CheckInService : Service() {
             ACTION_EXTEND -> extend()
             ACTION_SAFE -> markSafe()
             ACTION_SOS -> triggerSos()
+            ACTION_SYNC -> resync()
             else -> if (timerJob == null) stopSelf()
         }
         // A restarted service would have lost its deadline; never resurrect silently.
@@ -100,15 +103,58 @@ class CheckInService : Service() {
         timerJob?.cancel()
         acquireWakeLock(endsAt - System.currentTimeMillis() + GRACE_MS + SEND_WAKE_MS)
         session.value = SessionState.CheckIn(startedAt, endsAt)
+        scheduleBackupAlarm(endsAt)
         timerJob = scope.launch {
             delayUntil(endsAt)
             val alertAt = System.currentTimeMillis() + GRACE_MS
             session.value = SessionState.Grace(alertAt)
             notify(Notifications.SESSION_ID, Notifications.grace(this@CheckInService, alertAt))
+            scheduleBackupAlarm(alertAt)
             delayUntil(alertAt)
             sendAlert(AlertReason.MISSED_CHECK_IN)
         }
     }
+
+    private fun runGrace(alertAt: Long) {
+        timerJob?.cancel()
+        acquireWakeLock(alertAt - System.currentTimeMillis() + SEND_WAKE_MS)
+        scheduleBackupAlarm(alertAt)
+        timerJob = scope.launch {
+            delayUntil(alertAt)
+            sendAlert(AlertReason.MISSED_CHECK_IN)
+        }
+    }
+
+    /**
+     * Woken by the backup alarm. In Doze the CPU can sleep through the coroutine timer (wake locks
+     * are ignored there), so restart the countdown against the wall clock; a deadline that has
+     * already passed fires immediately.
+     */
+    private fun resync() {
+        when (val state = session.value) {
+            is SessionState.CheckIn -> runTimer(state.startedAtMillis, state.endsAtMillis)
+            is SessionState.Grace -> runGrace(state.alertAtMillis)
+            else -> if (timerJob == null) stopSelf()
+        }
+    }
+
+    /** Doze-proof backstop for the next deadline; needs no exact-alarm permission. */
+    private fun scheduleBackupAlarm(atMillis: Long) {
+        getSystemService(AlarmManager::class.java)
+            .setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, syncIntent())
+    }
+
+    private fun cancelBackupAlarm() {
+        getSystemService(AlarmManager::class.java).cancel(syncIntent())
+    }
+
+    private fun syncIntent(): PendingIntent =
+        PendingIntent.getService(
+            this,
+            SYNC_REQUEST_CODE,
+            intent(this, ACTION_SYNC),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
 
     private suspend fun sendAlert(reason: AlertReason) {
         session.value = SessionState.Sending(reason)
@@ -120,6 +166,7 @@ class CheckInService : Service() {
 
     private fun finish(resultNotification: Notification?) {
         timerJob = null
+        cancelBackupAlarm()
         releaseWakeLock()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         resultNotification?.let { notify(Notifications.RESULT_ID, it) }
@@ -172,7 +219,9 @@ class CheckInService : Service() {
         const val ACTION_EXTEND = "com.besafe.app.action.EXTEND"
         const val ACTION_SAFE = "com.besafe.app.action.SAFE"
         const val ACTION_SOS = "com.besafe.app.action.SOS"
+        private const val ACTION_SYNC = "com.besafe.app.action.SYNC"
         private const val EXTRA_DURATION_MS = "duration_ms"
+        private const val SYNC_REQUEST_CODE = 100
 
         const val GRACE_MS = 60_000L
         private const val EXTEND_MS = 10 * 60_000L

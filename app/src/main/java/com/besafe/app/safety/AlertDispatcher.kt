@@ -5,9 +5,11 @@ import com.besafe.app.data.MessageKind
 import com.besafe.app.data.SentMessage
 import com.besafe.app.data.SettingsRepository
 import com.besafe.app.data.TrustedContact
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withContext
+
+/** Shown when the hardware can't send SMS at all (Wi-Fi tablets, Fire devices). */
+const val NO_SMS_DEVICE =
+    "This device can't send text messages, so Be Safe can't alert your contacts from it. Use Be Safe on a phone with a SIM card."
 
 /** Resolves location, builds the message, texts every trusted contact and logs it to history. */
 class AlertDispatcher(context: Context, private val settings: SettingsRepository) {
@@ -18,6 +20,7 @@ class AlertDispatcher(context: Context, private val settings: SettingsRepository
     suspend fun sendAlert(reason: AlertReason): SessionState {
         val contacts = settings.contacts.first()
         if (contacts.isEmpty()) return SessionState.Failed("No trusted contacts saved.")
+        if (!sms.deviceCanSendSms()) return SessionState.Failed(NO_SMS_DEVICE)
         if (!sms.hasPermission()) return SessionState.Failed("SMS permission is missing.")
 
         val fix = location.currentLocation()
@@ -26,7 +29,7 @@ class AlertDispatcher(context: Context, private val settings: SettingsRepository
         val sent = send(contacts, message, kind, fix?.let(AlertMessages::mapsLink))
 
         return if (sent == 0) {
-            SessionState.Failed("Couldn't send SMS. Check your SIM and signal, and call for help directly.")
+            SessionState.Failed("Couldn't send SMS. Check your signal, SIM and airplane mode, and call for help directly.")
         } else {
             SessionState.AlertSent(System.currentTimeMillis(), sent, reason, hadLocation = fix != null)
         }
@@ -45,7 +48,7 @@ class AlertDispatcher(context: Context, private val settings: SettingsRepository
         kind: MessageKind,
         mapsLink: String?,
     ): Int {
-        val delivered = withContext(Dispatchers.IO) { sms.sendToAll(contacts.map { it.phone }, message) }
+        val delivered = sms.sendToAll(contacts.map { it.phone }, message)
         settings.recordMessage(
             SentMessage(
                 timeMillis = System.currentTimeMillis(),

@@ -62,6 +62,7 @@ fun HomeScreen(
     userName: String,
     contacts: List<TrustedContact>,
     permissionsOk: Boolean,
+    smsCapable: Boolean,
     onSos: () -> Unit,
     onStartCheckIn: (Int) -> Unit,
     onSafe: () -> Unit,
@@ -91,7 +92,7 @@ fun HomeScreen(
             ) {
                 when (s) {
                     SessionState.Idle -> IdleContent(
-                        userName, contacts, permissionsOk, onSos, onStartCheckIn, onGoToContacts, onFixPermissions,
+                        userName, contacts, permissionsOk, smsCapable, onSos, onStartCheckIn, onGoToContacts, onFixPermissions,
                     )
                     is SessionState.CheckIn -> CheckInContent(s, onSafe, onExtend, onSos)
                     is SessionState.Grace -> GraceContent(s.alertAtMillis, onSafe, onExtend)
@@ -116,13 +117,14 @@ private fun IdleContent(
     userName: String,
     contacts: List<TrustedContact>,
     permissionsOk: Boolean,
+    smsCapable: Boolean,
     onSos: () -> Unit,
     onStartCheckIn: (Int) -> Unit,
     onGoToContacts: () -> Unit,
     onFixPermissions: () -> Unit,
 ) {
     var minutes by rememberSaveable { mutableIntStateOf(30) }
-    val ready = permissionsOk && contacts.isNotEmpty()
+    val ready = smsCapable && permissionsOk && contacts.isNotEmpty()
     val firstName = userName.trim().substringBefore(' ')
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -132,6 +134,12 @@ private fun IdleContent(
         )
         // When something is missing the status itself is the fix: a flat tappable row.
         when {
+            // Nothing the user can fix here, so a plain status line rather than a tappable row.
+            !smsCapable -> StatusLine(
+                "This device can't send text messages",
+                Icons.Filled.ErrorOutline,
+                tint = MaterialTheme.colorScheme.error,
+            )
             !permissionsOk -> ActionRow(
                 "Allow SMS & location access",
                 Icons.Filled.LocationOn,
@@ -157,6 +165,7 @@ private fun IdleContent(
     SosButton(enabled = ready, onTriggered = onSos, modifier = Modifier.padding(vertical = 4.dp))
     Text(
         when {
+            !smsCapable -> "Be Safe alerts your contacts by SMS, so SOS and check-ins need a phone with a SIM card."
             !permissionsOk -> "SOS turns on once Be Safe can send SMS and see your location."
             contacts.isEmpty() -> "SOS turns on once you've added someone to alert."
             else -> "Hold to text your trusted contacts where you are."

@@ -3,6 +3,7 @@ package com.besafe.app.ads
 import android.app.Activity
 import android.content.Context
 import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.RequestConfiguration
 import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
@@ -55,6 +56,12 @@ object Ads {
 
     private fun startSdk(context: Context) {
         if (!sdkStarted.compareAndSet(false, true)) return
+        // The app is listed for all ages, so keep every ad suitable for a family audience.
+        MobileAds.setRequestConfiguration(
+            RequestConfiguration.Builder()
+                .setMaxAdContentRating(RequestConfiguration.MAX_AD_CONTENT_RATING_PG)
+                .build(),
+        )
         // Google recommends initialising off the main thread; the callback returns on main.
         Thread { MobileAds.initialize(context) { _sdkReady.value = true } }.start()
     }
