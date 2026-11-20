@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PersonAdd
@@ -30,11 +31,13 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -48,6 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.besafe.app.data.TrustedContact
+import com.besafe.app.safety.AlertMessages
 import com.besafe.app.safety.AlertReason
 import com.besafe.app.safety.CheckInService
 import com.besafe.app.safety.SessionState
@@ -64,12 +68,13 @@ fun HomeScreen(
     permissionsOk: Boolean,
     smsCapable: Boolean,
     onSos: () -> Unit,
-    onStartCheckIn: (Int) -> Unit,
+    onStartCheckIn: (minutes: Int, note: String) -> Unit,
     onSafe: () -> Unit,
     onExtend: () -> Unit,
     onDismiss: () -> Unit,
     onGoToContacts: () -> Unit,
     onFixPermissions: () -> Unit,
+    onOpenTool: (SafetyTool) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -93,6 +98,7 @@ fun HomeScreen(
                 when (s) {
                     SessionState.Idle -> IdleContent(
                         userName, contacts, permissionsOk, smsCapable, onSos, onStartCheckIn, onGoToContacts, onFixPermissions,
+                        onOpenTool,
                     )
                     is SessionState.CheckIn -> CheckInContent(s, onSafe, onExtend, onSos)
                     is SessionState.Grace -> GraceContent(s.alertAtMillis, onSafe, onExtend)
@@ -119,11 +125,13 @@ private fun IdleContent(
     permissionsOk: Boolean,
     smsCapable: Boolean,
     onSos: () -> Unit,
-    onStartCheckIn: (Int) -> Unit,
+    onStartCheckIn: (minutes: Int, note: String) -> Unit,
     onGoToContacts: () -> Unit,
     onFixPermissions: () -> Unit,
+    onOpenTool: (SafetyTool) -> Unit,
 ) {
     var minutes by rememberSaveable { mutableIntStateOf(30) }
+    var note by rememberSaveable { mutableStateOf("") }
     val ready = smsCapable && permissionsOk && contacts.isNotEmpty()
     val firstName = userName.trim().substringBefore(' ')
 
@@ -157,7 +165,7 @@ private fun IdleContent(
             else -> StatusLine(
                 "Ready · ${contacts.size} trusted contact${if (contacts.size == 1) "" else "s"}",
                 Icons.Filled.CheckCircle,
-                tint = MaterialTheme.colorScheme.secondary,
+                tint = MaterialTheme.colorScheme.primary,
             )
         }
     }
@@ -174,6 +182,8 @@ private fun IdleContent(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
     )
+
+    QuickTools(onOpen = onOpenTool)
 
     AppCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -194,6 +204,16 @@ private fun IdleContent(
             }
         }
         DurationPicker(selectedMinutes = minutes, onSelect = { minutes = it })
+        OutlinedTextField(
+            value = note,
+            onValueChange = { note = it.take(AlertMessages.MAX_NOTE) },
+            label = { Text("Note for your contacts (optional)") },
+            placeholder = { Text("e.g. Taxi ABC-123 to Johar Town") },
+            supportingText = { Text("Only sent if you don't check in.") },
+            singleLine = true,
+            shape = MaterialTheme.shapes.small,
+            modifier = Modifier.fillMaxWidth(),
+        )
         Text(
             "If you haven't tapped \"I'm safe\" by ${clockTime(System.currentTimeMillis() + minutes * 60_000L)}, " +
                 "your contacts are alerted.",
@@ -201,7 +221,7 @@ private fun IdleContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Button(
-            onClick = { onStartCheckIn(minutes) },
+            onClick = { onStartCheckIn(minutes, note) },
             enabled = ready,
             modifier = Modifier.fillMaxWidth().height(52.dp),
         ) { Text("Start ${formatMinutes(minutes)} check-in") }
@@ -235,8 +255,11 @@ private fun CheckInContent(state: SessionState.CheckIn, onSafe: () -> Unit, onEx
         fraction = remaining.toFloat() / total,
         label = formatDuration(remaining),
         caption = "until your contacts are alerted",
-        color = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.secondary,
     )
+    if (state.note.isNotEmpty()) {
+        StatusLine("Note: ${state.note}", Icons.Filled.EditNote, tint = MaterialTheme.colorScheme.tertiary)
+    }
     SafeButton(onSafe)
     OutlinedButton(onClick = onExtend, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("Add 10 minutes") }
     Text(
@@ -256,6 +279,7 @@ private fun GraceContent(alertAt: Long, onSafe: () -> Unit, onExtend: () -> Unit
         label = formatDuration(remaining),
         caption = "until alert is sent",
         color = MaterialTheme.colorScheme.error,
+        labelColor = MaterialTheme.colorScheme.error,
     )
     SafeButton(onSafe)
     OutlinedButton(onClick = onExtend, modifier = Modifier.fillMaxWidth().height(48.dp)) {
@@ -296,7 +320,10 @@ private fun SentContent(state: SessionState.AlertSent, onSafe: () -> Unit, onDis
     Button(
         onClick = onSafe,
         modifier = Modifier.fillMaxWidth().height(56.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.secondary,
+            contentColor = MaterialTheme.colorScheme.onSecondary,
+        ),
     ) { Text("I'm safe now: tell my contacts") }
     TextButton(onClick = onDismiss) { Text("Close without messaging") }
 }
@@ -320,13 +347,23 @@ private fun SafeButton(onSafe: () -> Unit) {
     Button(
         onClick = onSafe,
         modifier = Modifier.fillMaxWidth().height(64.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.secondary,
+            contentColor = MaterialTheme.colorScheme.onSecondary,
+        ),
     ) { Text("I'm safe", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
 }
 
 /** Large ring that drains as time runs out, with the remaining time in the middle. */
 @Composable
-private fun CountdownRing(fraction: Float, label: String, caption: String, color: Color) {
+private fun CountdownRing(
+    fraction: Float,
+    label: String,
+    caption: String,
+    color: Color,
+    // Bright lime works as a ring but is hard to read as text on white.
+    labelColor: Color = MaterialTheme.colorScheme.onSurface,
+) {
     val track = MaterialTheme.colorScheme.surfaceVariant
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(250.dp)) {
         Canvas(Modifier.fillMaxSize()) {
@@ -338,7 +375,7 @@ private fun CountdownRing(fraction: Float, label: String, caption: String, color
             drawArc(color, -90f, 360f * fraction.coerceIn(0f, 1f), false, topLeft, arcSize, style = stroke)
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(label, fontSize = 52.sp, fontWeight = FontWeight.Bold, color = color)
+            Text(label, fontSize = 52.sp, fontWeight = FontWeight.Bold, color = labelColor)
             Text(
                 caption,
                 style = MaterialTheme.typography.bodySmall,

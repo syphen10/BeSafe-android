@@ -40,7 +40,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { settings.markReviewRequested() }
     }
 
-    fun startCheckIn(minutes: Int) = CheckInService.startCheckIn(getApplication(), minutes)
+    fun startCheckIn(minutes: Int, note: String) = CheckInService.startCheckIn(getApplication(), minutes, note)
 
     fun sos() = CheckInService.sos(getApplication())
 

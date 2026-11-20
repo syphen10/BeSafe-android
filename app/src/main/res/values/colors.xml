@@ -1,6 +1,9 @@
 <resources>
-    <color name="brand_navy">#1E3A8A</color>
-    <color name="ic_launcher_background">#1E3A8A</color>
-    <color name="app_background">#F6F7FB</color>
-    <color name="sos_red">#D32F2F</color>
+    <!-- Brand: lime, white and a tint of pink. -->
+    <color name="brand_splash">#FFFFFF</color>
+    <color name="brand_lime">#65A30D</color>
+    <color name="brand_pink">#EC4899</color>
+    <color name="ic_launcher_background">#FFFFFF</color>
+    <color name="app_background">#FFFBFC</color>
+    <color name="sos_red">#DC2626</color>
 </resources>

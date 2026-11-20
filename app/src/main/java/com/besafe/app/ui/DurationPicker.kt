@@ -50,8 +50,8 @@ fun DurationPicker(selectedMinutes: Int, onSelect: (Int) -> Unit) {
     var showCustom by rememberSaveable { mutableStateOf(false) }
     val isCustom = selectedMinutes !in presetDurations
     val chipColors = FilterChipDefaults.filterChipColors(
-        selectedContainerColor = MaterialTheme.colorScheme.primary,
-        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+        selectedContainerColor = MaterialTheme.colorScheme.secondary,
+        selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
     )
 
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {

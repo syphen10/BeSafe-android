@@ -5,10 +5,10 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
-    <!-- Shown by the system the instant the app is tapped: navy with a beating-heart logo while the
+    <!-- Shown by the system the instant the app is tapped: white with a beating-heart logo while the
          app loads, then MainActivity fades it out as soon as the first frame is ready. -->
     <style name="Theme.BeSafe.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/brand_navy</item>
+        <item name="windowSplashScreenBackground">@color/brand_splash</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo_animated</item>
         <item name="windowSplashScreenAnimationDuration">1000</item>
         <item name="postSplashScreenTheme">@style/Theme.BeSafe</item>

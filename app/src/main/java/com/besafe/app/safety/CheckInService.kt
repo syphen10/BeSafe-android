@@ -33,6 +33,9 @@ class CheckInService : Service() {
     private var timerJob: Job? = null
     private var wakeLock: PowerManager.WakeLock? = null
 
+    /** The current check-in's note, added to whatever alert this session sends. */
+    private var note = ""
+
     private val container get() = (application as BeSafeApp).container
     private val session get() = container.session
 
@@ -40,7 +43,10 @@ class CheckInService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_START -> startCheckIn(intent.getLongExtra(EXTRA_DURATION_MS, 0L))
+            ACTION_START -> startCheckIn(
+                intent.getLongExtra(EXTRA_DURATION_MS, 0L),
+                intent.getStringExtra(EXTRA_NOTE).orEmpty(),
+            )
             ACTION_EXTEND -> extend()
             ACTION_SAFE -> markSafe()
             ACTION_SOS -> triggerSos()
@@ -57,7 +63,8 @@ class CheckInService : Service() {
         super.onDestroy()
     }
 
-    private fun startCheckIn(durationMs: Long) {
+    private fun startCheckIn(durationMs: Long, checkInNote: String) {
+        note = checkInNote.trim().take(AlertMessages.MAX_NOTE)
         val now = System.currentTimeMillis()
         val endsAt = now + durationMs.coerceIn(MIN_DURATION_MS, MAX_DURATION_MS)
         if (!goForeground(Notifications.checkIn(this, endsAt))) return
@@ -102,7 +109,7 @@ class CheckInService : Service() {
     private fun runTimer(startedAt: Long, endsAt: Long) {
         timerJob?.cancel()
         acquireWakeLock(endsAt - System.currentTimeMillis() + GRACE_MS + SEND_WAKE_MS)
-        session.value = SessionState.CheckIn(startedAt, endsAt)
+        session.value = SessionState.CheckIn(startedAt, endsAt, note)
         scheduleBackupAlarm(endsAt)
         timerJob = scope.launch {
             delayUntil(endsAt)
@@ -159,13 +166,14 @@ class CheckInService : Service() {
     private suspend fun sendAlert(reason: AlertReason) {
         session.value = SessionState.Sending(reason)
         notify(Notifications.SESSION_ID, Notifications.sending(this))
-        val result = container.alerts.sendAlert(reason)
+        val result = container.alerts.sendAlert(reason, note)
         session.value = result
         finish(Notifications.result(this, result))
     }
 
     private fun finish(resultNotification: Notification?) {
         timerJob = null
+        note = ""
         cancelBackupAlarm()
         releaseWakeLock()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
@@ -221,6 +229,7 @@ class CheckInService : Service() {
         const val ACTION_SOS = "com.besafe.app.action.SOS"
         private const val ACTION_SYNC = "com.besafe.app.action.SYNC"
         private const val EXTRA_DURATION_MS = "duration_ms"
+        private const val EXTRA_NOTE = "note"
         private const val SYNC_REQUEST_CODE = 100
 
         const val GRACE_MS = 60_000L
@@ -230,8 +239,10 @@ class CheckInService : Service() {
         private const val MAX_DURATION_MS = MAX_MINUTES * 60_000L
         private const val SEND_WAKE_MS = 2 * 60_000L
 
-        fun startCheckIn(context: Context, minutes: Int) {
-            val intent = intent(context, ACTION_START).putExtra(EXTRA_DURATION_MS, minutes * 60_000L)
+        fun startCheckIn(context: Context, minutes: Int, note: String = "") {
+            val intent = intent(context, ACTION_START)
+                .putExtra(EXTRA_DURATION_MS, minutes * 60_000L)
+                .putExtra(EXTRA_NOTE, note)
             ContextCompat.startForegroundService(context, intent)
         }
 

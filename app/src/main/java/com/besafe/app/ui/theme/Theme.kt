@@ -13,62 +13,67 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Brand navy — also the splash/intro background, identical in light and dark. */
-val BrandNavy = Color(0xFF1E3A8A)
-val BrandPink = Color(0xFFFFC9D6)
+// Brand: lime, white and a tint of pink. In the light theme "primary" is a deep lime, because
+// Material draws text buttons, text fields and links in primary and bright lime text is hard to read
+// on white. Bright lime is "secondary": a fill colour (the "I'm safe" button, selected chips,
+// countdown ring) that always carries dark text.
+// SOS stays red in every theme: it's the colour people instinctively read as "emergency".
+val BrandLime = Color(0xFF84CC16)
+val BrandLimeDeep = Color(0xFF4D7C0F)
+val BrandPink = Color(0xFFEC4899)
 
 private val Light = lightColorScheme(
-    primary = BrandNavy,
+    primary = BrandLimeDeep,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFDCE3FA),
-    onPrimaryContainer = Color(0xFF0E1F55),
-    secondary = Color(0xFF2E7D32),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFD9EFDA),
-    onSecondaryContainer = Color(0xFF0B3A10),
-    tertiary = Color(0xFFB26A00),
+    primaryContainer = Color(0xFFECFCCB),
+    onPrimaryContainer = Color(0xFF2B4A08),
+    secondary = BrandLime,
+    onSecondary = Color(0xFF1A2E05),
+    secondaryContainer = Color(0xFFD9F99D),
+    onSecondaryContainer = Color(0xFF1A2E05),
+    tertiary = Color(0xFFDB2777),
     onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFFCEBD0),
-    onTertiaryContainer = Color(0xFF4A2C00),
-    error = Color(0xFFD32F2F),
+    tertiaryContainer = Color(0xFFFCE7F3),
+    onTertiaryContainer = Color(0xFF831843),
+    error = Color(0xFFDC2626),
     onError = Color.White,
-    errorContainer = Color(0xFFFBE3E3),
-    onErrorContainer = Color(0xFF5C0B0B),
-    background = Color(0xFFF6F7FB),
-    onBackground = Color(0xFF151A2D),
+    errorContainer = Color(0xFFFEE2E2),
+    onErrorContainer = Color(0xFF7F1D1D),
+    background = Color(0xFFFFFBFC),
+    onBackground = Color(0xFF1B2014),
     surface = Color.White,
-    onSurface = Color(0xFF151A2D),
-    surfaceVariant = Color(0xFFEEF0F6),
-    onSurfaceVariant = Color(0xFF5A6275),
-    outline = Color(0xFFC5CAD8),
-    outlineVariant = Color(0xFFE4E7EF),
+    onSurface = Color(0xFF1B2014),
+    surfaceVariant = Color(0xFFF6EFF2),
+    onSurfaceVariant = Color(0xFF5F6657),
+    outline = Color(0xFFD8CFD3),
+    outlineVariant = Color(0xFFEFE6EA),
 )
 
 private val Dark = darkColorScheme(
-    primary = Color(0xFFA9BCFF),
-    onPrimary = Color(0xFF0A1A4F),
-    primaryContainer = Color(0xFF22337A),
-    onPrimaryContainer = Color(0xFFDCE3FA),
-    secondary = Color(0xFF8BD48F),
-    onSecondary = Color(0xFF0B2E0F),
-    secondaryContainer = Color(0xFF1D4A21),
-    onSecondaryContainer = Color(0xFFD9EFDA),
-    tertiary = Color(0xFFF2B766),
-    onTertiary = Color(0xFF3F2500),
-    tertiaryContainer = Color(0xFF5A3A00),
-    onTertiaryContainer = Color(0xFFFCEBD0),
-    error = Color(0xFFE5534B),
-    onError = Color.White,
+    primary = Color(0xFFA3E635),
+    onPrimary = Color(0xFF1A2E05),
+    primaryContainer = Color(0xFF2F4A0C),
+    onPrimaryContainer = Color(0xFFECFCCB),
+    secondary = Color(0xFFBEF264),
+    onSecondary = Color(0xFF1A2E05),
+    secondaryContainer = Color(0xFF365314),
+    onSecondaryContainer = Color(0xFFECFCCB),
+    tertiary = Color(0xFFF9A8D4),
+    onTertiary = Color(0xFF500724),
+    tertiaryContainer = Color(0xFF6B1A44),
+    onTertiaryContainer = Color(0xFFFCE7F3),
+    error = Color(0xFFF87171),
+    onError = Color(0xFF450A0A),
     errorContainer = Color(0xFF5C1414),
-    onErrorContainer = Color(0xFFFBE3E3),
-    background = Color(0xFF0E1322),
-    onBackground = Color(0xFFE6E9F2),
-    surface = Color(0xFF161C2E),
-    onSurface = Color(0xFFE6E9F2),
-    surfaceVariant = Color(0xFF212A40),
-    onSurfaceVariant = Color(0xFFA9B1C6),
-    outline = Color(0xFF3A4462),
-    outlineVariant = Color(0xFF2A3350),
+    onErrorContainer = Color(0xFFFEE2E2),
+    background = Color(0xFF11150D),
+    onBackground = Color(0xFFE8EDE0),
+    surface = Color(0xFF181E12),
+    onSurface = Color(0xFFE8EDE0),
+    surfaceVariant = Color(0xFF262C1F),
+    onSurfaceVariant = Color(0xFFB5BCA8),
+    outline = Color(0xFF424A38),
+    outlineVariant = Color(0xFF2E3527),
 )
 
 private val BaseType = Typography()
@@ -81,9 +86,9 @@ private val AppTypography = Typography(
 )
 
 private val AppShapes = Shapes(
-    small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(24.dp),
+    small = RoundedCornerShape(14.dp),
+    medium = RoundedCornerShape(20.dp),
+    large = RoundedCornerShape(28.dp),
 )
 
 @Composable

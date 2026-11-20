@@ -74,6 +74,10 @@ import com.besafe.app.ui.ContactsScreen
 import com.besafe.app.ui.HomeScreen
 import com.besafe.app.ui.MainViewModel
 import com.besafe.app.ui.MessagesScreen
+import com.besafe.app.ui.FakeCallScreen
+import com.besafe.app.ui.SafetyTool
+import com.besafe.app.ui.SirenScreen
+import androidx.activity.compose.BackHandler
 import com.besafe.app.ui.theme.BeSafeTheme
 
 /**
@@ -103,7 +107,7 @@ class MainActivity : ComponentActivity() {
         root.addView(loading, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         setContentView(root)
         loadingView = loading
-        setLightSystemBars(false)
+        setLightSystemBars(true)
 
         // Let the loading screen reach the display first, then build the real UI behind it.
         loading.doOnPreDraw {
@@ -132,7 +136,7 @@ class MainActivity : ComponentActivity() {
         fun dp(value: Int) = (value * density).toInt()
 
         return FrameLayout(this).apply {
-            setBackgroundColor(ContextCompat.getColor(context, R.color.brand_navy))
+            setBackgroundColor(ContextCompat.getColor(context, R.color.brand_splash))
             isClickable = true // swallow taps until the real UI is ready
             // Same drawable and size as the system splash icon, so the hand-off is invisible.
             addView(
@@ -145,7 +149,7 @@ class MainActivity : ComponentActivity() {
             addView(
                 ProgressBar(context, null, android.R.attr.progressBarStyleSmall).apply {
                     isIndeterminate = true
-                    indeterminateTintList = ColorStateList.valueOf(Color.WHITE)
+                    indeterminateTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.brand_lime))
                     alpha = 0.7f
                     translationY = dp(150).toFloat()
                 },
@@ -171,7 +175,7 @@ class MainActivity : ComponentActivity() {
             .start()
     }
 
-    /** White status/nav icons over the navy loading screen; theme-appropriate ones afterwards. */
+    /** Dark status/nav icons over the white loading screen; theme-appropriate ones afterwards. */
     private fun setLightSystemBars(light: Boolean) {
         WindowCompat.getInsetsController(window, window.decorView).apply {
             isAppearanceLightStatusBars = light
@@ -244,6 +248,7 @@ private fun BeSafeRoot(
     }
 
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
+    var tool by rememberSaveable { mutableStateOf<SafetyTool?>(null) }
     val smsCapable = remember { SmsSender(context).deviceCanSendSms() }
     var permissionsOk by remember { mutableStateOf(context.corePermissionsGranted()) }
     var askedOnce by rememberSaveable { mutableStateOf(false) }
@@ -268,7 +273,10 @@ private fun BeSafeRoot(
 
     // An active session always takes over the screen, wherever the user was.
     LaunchedEffect(session) {
-        if (session !is SessionState.Idle) tab = Tab.Home
+        if (session !is SessionState.Idle) {
+            tab = Tab.Home
+            tool = null
+        }
     }
 
     // Launcher "SOS" shortcut: always land on the SOS button.
@@ -325,6 +333,7 @@ private fun BeSafeRoot(
                         onExtend = vm::extend,
                         onDismiss = vm::dismissResult,
                         onGoToContacts = { tab = Tab.Contacts },
+                        onOpenTool = { tool = it },
                         onFixPermissions = {
                             // After a permanent denial the system dialog no longer shows, so open app settings.
                             val activity = context as? ComponentActivity
@@ -353,6 +362,18 @@ private fun BeSafeRoot(
                         onRemove = vm::removeContact,
                     )
                 }
+            }
+        }
+
+        // Full-screen tools sit above the tabs; Back closes them.
+        tool?.let { open ->
+            BackHandler { tool = null }
+            when (open) {
+                SafetyTool.FakeCall -> FakeCallScreen(
+                    callerName = contacts.firstOrNull()?.name?.substringBefore(' ') ?: "Mom",
+                    onClose = { tool = null },
+                )
+                SafetyTool.Siren -> SirenScreen(onClose = { tool = null })
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.besafe.app.safety
 
 import android.content.Context
+import android.os.BatteryManager
 import com.besafe.app.data.MessageKind
 import com.besafe.app.data.SentMessage
 import com.besafe.app.data.SettingsRepository
@@ -14,17 +15,18 @@ const val NO_SMS_DEVICE =
 /** Resolves location, builds the message, texts every trusted contact and logs it to history. */
 class AlertDispatcher(context: Context, private val settings: SettingsRepository) {
 
+    private val appContext = context.applicationContext
     private val location = LocationProvider(context)
     private val sms = SmsSender(context)
 
-    suspend fun sendAlert(reason: AlertReason): SessionState {
+    suspend fun sendAlert(reason: AlertReason, note: String = ""): SessionState {
         val contacts = settings.contacts.first()
         if (contacts.isEmpty()) return SessionState.Failed("No trusted contacts saved.")
         if (!sms.deviceCanSendSms()) return SessionState.Failed(NO_SMS_DEVICE)
         if (!sms.hasPermission()) return SessionState.Failed("SMS permission is missing.")
 
         val fix = location.currentLocation()
-        val message = AlertMessages.alert(settings.userName.first(), fix, reason)
+        val message = AlertMessages.alert(settings.userName.first(), fix, reason, note, batteryPercent())
         val kind = if (reason == AlertReason.SOS) MessageKind.SOS else MessageKind.MISSED_CHECK_IN
         val sent = send(contacts, message, kind, fix?.let(AlertMessages::mapsLink))
 
@@ -34,6 +36,12 @@ class AlertDispatcher(context: Context, private val settings: SettingsRepository
             SessionState.AlertSent(System.currentTimeMillis(), sent, reason, hadLocation = fix != null)
         }
     }
+
+    /** Null where the device doesn't report it (e.g. no battery). */
+    private fun batteryPercent(): Int? =
+        appContext.getSystemService(BatteryManager::class.java)
+            ?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            ?.takeIf { it in 0..100 }
 
     /** Follow-up so contacts know a previous alert can be stood down. */
     suspend fun sendSafe(): Int {

@@ -170,7 +170,7 @@ private fun MessageCard(message: SentMessage) {
 private fun DeliveryLabel(message: SentMessage) {
     val (text, color) = when {
         message.deliveredTo == 0 -> "Not sent" to MaterialTheme.colorScheme.error
-        message.allSent -> "Sent" to MaterialTheme.colorScheme.secondary
+        message.allSent -> "Sent" to MaterialTheme.colorScheme.primary
         else -> "Sent ${message.deliveredTo}/${message.recipients.size}" to MaterialTheme.colorScheme.tertiary
     }
     Text(text, style = MaterialTheme.typography.labelLarge, color = color)

@@ -51,7 +51,10 @@ import java.io.File
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [35], qualifiers = "w393dp-h852dp-xxhdpi")
-class StoreScreenshots {
+open class StoreScreenshots {
+
+    /** Prepended to every file name, so phone and tablet sets can share an output folder. */
+    protected open val prefix = ""
 
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
@@ -127,15 +130,16 @@ class StoreScreenshots {
     }
 
     @Composable
-    private fun home(state: SessionState, modifier: Modifier) {
+    protected fun home(state: SessionState, modifier: Modifier, smsCapable: Boolean = true) {
         HomeScreen(
             state = state,
             userName = "Sara",
             contacts = contacts,
             permissionsOk = true,
-            smsCapable = true,
+            smsCapable = smsCapable,
             onSos = {},
-            onStartCheckIn = {},
+            onStartCheckIn = { _, _ -> },
+            onOpenTool = {},
             onSafe = {},
             onExtend = {},
             onDismiss = {},
@@ -145,7 +149,7 @@ class StoreScreenshots {
         )
     }
 
-    private fun shot(name: String, tab: Int, body: @Composable (Modifier) -> Unit) {
+    protected fun shot(name: String, tab: Int, body: @Composable (Modifier) -> Unit) {
         compose.mainClock.autoAdvance = false // SOS idle animation never settles
         compose.setContent {
             BeSafeTheme { AppFrame(selected = tab) { body(it) } }
@@ -157,8 +161,21 @@ class StoreScreenshots {
         val root = compose.activity.window.decorView
         val bitmap = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)
         root.draw(Canvas(bitmap))
-        File(outDir, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        File(outDir, "$prefix$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
+}
+
+/**
+ * The same screens at Fire tablet size (1920x1200, landscape) for the Amazon Appstore, plus the
+ * Safety screen as it really appears on a tablet that can't send SMS.
+ */
+@Config(sdk = [35], qualifiers = "w1280dp-h800dp-land-hdpi")
+class TabletStoreScreenshots : StoreScreenshots() {
+
+    override val prefix = "tablet-"
+
+    @Test
+    fun noSms() = shot("nosms", tab = 0) { m -> home(SessionState.Idle, m, smsCapable = false) }
 }
 
 /** Same bottom navigation as MainActivity's root, so the shots look like the real app. */

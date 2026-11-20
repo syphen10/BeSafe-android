@@ -96,7 +96,7 @@ object Notifications {
     private fun base(context: Context, channel: String) =
         NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_besafe)
-            .setColor(0xFF1E3A8A.toInt())
+            .setColor(0xFF3F6212.toInt()) // deep lime: readable as a notification accent
             .setContentIntent(openApp(context))
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 
