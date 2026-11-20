@@ -103,7 +103,7 @@ fun ContactsScreen(
         item {
             // Stacked full-width so the labels never clip on narrow phones or with large font sizes.
             Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                Button(
+                AppButton(
                     onClick = {
                         pickError = null
                         try {
@@ -118,7 +118,7 @@ fun ContactsScreen(
                     Spacer(Modifier.width(10.dp))
                     Text("Choose from your contacts")
                 }
-                OutlinedButton(
+                AppOutlinedButton(
                     onClick = { showManual = true },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                 ) {

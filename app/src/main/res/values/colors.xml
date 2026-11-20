@@ -1,9 +1,11 @@
 <resources>
-    <!-- Brand: lime, white and a tint of pink. -->
-    <color name="brand_splash">#FFFFFF</color>
-    <color name="brand_lime">#65A30D</color>
-    <color name="brand_pink">#EC4899</color>
-    <color name="ic_launcher_background">#FFFFFF</color>
-    <color name="app_background">#FFFBFC</color>
+    <!-- Brand: lime is the dominant colour, with white and a tint of pink. -->
+    <color name="brand_splash">#A3E635</color>
+    <color name="brand_olive">#1A2E05</color>
+    <!-- Launcher icon / splash mark on lime: white mother, pink daughter. -->
+    <color name="logo_mother">#FFFFFF</color>
+    <color name="logo_daughter">#DB2777</color>
+    <color name="ic_launcher_background">#A3E635</color>
+    <color name="app_background">#A3E635</color>
     <color name="sos_red">#DC2626</color>
 </resources>

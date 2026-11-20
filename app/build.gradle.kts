@@ -27,8 +27,8 @@ android {
         applicationId = "com.syphen.besafe"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "0.4.0"
+        versionCode = 8
+        versionName = "0.5.0"
         vectorDrawables.useSupportLibrary = true
 
         // AdMob IDs come from gradle.properties; defaults are Google's public test IDs.

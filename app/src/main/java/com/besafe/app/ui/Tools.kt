@@ -140,13 +140,20 @@ private fun ToolTile(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    Surface(onClick = onClick, shape = MaterialTheme.shapes.medium, color = container, contentColor = content, modifier = modifier) {
+    // White tile on the lime background; the colour lives in the icon badge only.
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier,
+    ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp),
         ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(26.dp))
+            IconBadge(icon, container = container, content = content, size = 48.dp)
             Text(label, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center, maxLines = 1)
         }
     }
@@ -241,7 +248,7 @@ private fun FakeCallSetup(
                     )
                 }
             }
-            Button(onClick = onStart, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("Start") }
+            AppButton(onClick = onStart, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("Start") }
         } else {
             Text("Ringing in $left s", fontSize = 40.sp, fontWeight = FontWeight.Bold)
             Text(
@@ -378,7 +385,7 @@ fun SirenScreen(onClose: () -> Unit) {
         Text("Siren on", color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Black)
         Text("Tap anywhere to stop", color = Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(24.dp))
-        Button(
+        AppButton(
             onClick = onClose,
             colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = MaterialTheme.colorScheme.error),
             modifier = Modifier.fillMaxWidth().height(56.dp),

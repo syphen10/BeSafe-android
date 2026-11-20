@@ -31,6 +31,7 @@ import com.besafe.app.safety.AlertReason
 import com.besafe.app.safety.LocationFix
 import com.besafe.app.safety.SessionState
 import com.besafe.app.ui.ContactsScreen
+import com.besafe.app.ui.FloatingTabBar
 import com.besafe.app.ui.HomeScreen
 import com.besafe.app.ui.MessagesScreen
 import com.besafe.app.ui.theme.BeSafeTheme
@@ -188,25 +189,6 @@ private fun AppFrame(selected: Int, content: @Composable (Modifier) -> Unit) {
     )
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            Box {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
-                    tabs.forEachIndexed { i, (label, icon) ->
-                        NavigationBarItem(
-                            selected = i == selected,
-                            onClick = {},
-                            icon = { Icon(icon, contentDescription = null) },
-                            label = { Text(label) },
-                            colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                            ),
-                        )
-                    }
-                }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            }
-        },
+        bottomBar = { FloatingTabBar(items = tabs, selected = selected, onSelect = {}) },
     ) { padding -> content(Modifier.padding(padding)) }
 }

@@ -6,7 +6,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -48,12 +56,12 @@ fun ScreenHeader(title: String, subtitle: String? = null, trailing: (@Composable
     }
 }
 
-/** Flat white card with a hairline border: calmer than elevated/tinted cards. */
+/** Flat white card floating on the lime background: no border, no shadow, no glow. */
 @Composable
 fun AppCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
-    bordered: Boolean = true,
+    bordered: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
@@ -63,6 +71,118 @@ fun AppCard(
         border = if (bordered) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
+    }
+}
+
+private val ButtonShape = RoundedCornerShape(16.dp)
+
+/**
+ * Main action: solid deep olive with a light-lime label, softly squared. Same parameters as
+ * Material's Button so call sites read the same.
+ */
+@Composable
+fun AppButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: ButtonColors = ButtonDefaults.buttonColors(
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+    ),
+    content: @Composable RowScope.() -> Unit,
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 52.dp),
+        enabled = enabled,
+        shape = ButtonShape,
+        colors = colors,
+        elevation = null,
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        content = content,
+    )
+}
+
+/** Second action: white with a solid olive edge, so it reads on both lime and white. */
+@Composable
+fun AppOutlinedButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 52.dp),
+        enabled = enabled,
+        shape = ButtonShape,
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.primary,
+        ),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        content = content,
+    )
+}
+
+/** Compact white pill: the status under the greeting, readable straight on lime. */
+@Composable
+fun StatusPill(text: String, icon: ImageVector, tint: Color, modifier: Modifier = Modifier) {
+    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surface, modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+        }
+    }
+}
+
+/**
+ * Floating white tab bar on the lime background. The selected tab becomes a solid olive pill with
+ * its label; the others are icon + small label.
+ */
+@Composable
+fun FloatingTabBar(
+    items: List<Pair<String, ImageVector>>,
+    selected: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+    ) {
+        Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(8.dp),
+            ) {
+                items.forEachIndexed { index, (label, icon) ->
+                    val isSelected = index == selected
+                    Surface(
+                        onClick = { onSelect(index) },
+                        shape = RoundedCornerShape(18.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(vertical = 10.dp),
+                        ) {
+                            Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp))
+                            Text(label, style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

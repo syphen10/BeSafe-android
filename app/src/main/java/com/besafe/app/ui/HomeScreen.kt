@@ -91,20 +91,33 @@ fun HomeScreen(
             transitionSpec = { fadeIn() togetherWith fadeOut() },
             label = "session",
         ) { s ->
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-            ) {
-                when (s) {
-                    SessionState.Idle -> IdleContent(
+            if (s == SessionState.Idle) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    IdleContent(
                         userName, contacts, permissionsOk, smsCapable, onSos, onStartCheckIn, onGoToContacts, onFixPermissions,
                         onOpenTool,
                     )
-                    is SessionState.CheckIn -> CheckInContent(s, onSafe, onExtend, onSos)
-                    is SessionState.Grace -> GraceContent(s.alertAtMillis, onSafe, onExtend)
-                    is SessionState.Sending -> SendingContent()
-                    is SessionState.AlertSent -> SentContent(s, onSafe, onDismiss)
-                    is SessionState.Failed -> FailedContent(s.message, onDismiss)
+                }
+            } else {
+                // An active session is one white panel on the lime, so it reads as "this is happening now".
+                AppCard {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        when (s) {
+                            is SessionState.CheckIn -> CheckInContent(s, onSafe, onExtend, onSos)
+                            is SessionState.Grace -> GraceContent(s.alertAtMillis, onSafe, onExtend)
+                            is SessionState.Sending -> SendingContent()
+                            is SessionState.AlertSent -> SentContent(s, onSafe, onDismiss)
+                            is SessionState.Failed -> FailedContent(s.message, onDismiss)
+                            SessionState.Idle -> Unit
+                        }
+                    }
                 }
             }
         }
@@ -114,6 +127,7 @@ fun HomeScreen(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 8.dp),
         )
     }
 }
@@ -136,14 +150,14 @@ private fun IdleContent(
     val firstName = userName.trim().substringBefore(' ')
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            if (firstName.isEmpty()) greeting() else "${greeting()}, $firstName",
-            style = MaterialTheme.typography.headlineMedium,
-        )
+        Column {
+            Text(greeting(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(firstName.ifEmpty { "Stay safe" }, style = MaterialTheme.typography.displaySmall)
+        }
         // When something is missing the status itself is the fix: a flat tappable row.
         when {
-            // Nothing the user can fix here, so a plain status line rather than a tappable row.
-            !smsCapable -> StatusLine(
+            // Nothing the user can fix here, so a plain status pill rather than a tappable row.
+            !smsCapable -> StatusPill(
                 "This device can't send text messages",
                 Icons.Filled.ErrorOutline,
                 tint = MaterialTheme.colorScheme.error,
@@ -162,26 +176,35 @@ private fun IdleContent(
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                 onClick = onGoToContacts,
             )
-            else -> StatusLine(
+            else -> StatusPill(
                 "Ready · ${contacts.size} trusted contact${if (contacts.size == 1) "" else "s"}",
                 Icons.Filled.CheckCircle,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MaterialTheme.colorScheme.secondary,
             )
         }
     }
 
-    SosButton(enabled = ready, onTriggered = onSos, modifier = Modifier.padding(vertical = 4.dp))
-    Text(
-        when {
-            !smsCapable -> "Be Safe alerts your contacts by SMS, so SOS and check-ins need a phone with a SIM card."
-            !permissionsOk -> "SOS turns on once Be Safe can send SMS and see your location."
-            contacts.isEmpty() -> "SOS turns on once you've added someone to alert."
-            else -> "Hold to text your trusted contacts where you are."
-        },
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-    )
+    // SOS sits on its own white plate: red on white reads instantly, red on lime would clash.
+    AppCard {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            SosButton(enabled = ready, onTriggered = onSos, size = 184.dp)
+            Text(
+                when {
+                    !smsCapable -> "Be Safe alerts your contacts by SMS, so SOS and check-ins need a phone with a SIM card."
+                    !permissionsOk -> "SOS turns on once Be Safe can send SMS and see your location."
+                    contacts.isEmpty() -> "SOS turns on once you've added someone to alert."
+                    else -> "Hold to text your trusted contacts where you are."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
 
     QuickTools(onOpen = onOpenTool)
 
@@ -220,7 +243,7 @@ private fun IdleContent(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Button(
+        AppButton(
             onClick = { onStartCheckIn(minutes, note) },
             enabled = ready,
             modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -261,7 +284,7 @@ private fun CheckInContent(state: SessionState.CheckIn, onSafe: () -> Unit, onEx
         StatusLine("Note: ${state.note}", Icons.Filled.EditNote, tint = MaterialTheme.colorScheme.tertiary)
     }
     SafeButton(onSafe)
-    OutlinedButton(onClick = onExtend, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("Add 10 minutes") }
+    AppOutlinedButton(onClick = onExtend, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("Add 10 minutes") }
     Text(
         "Feeling unsafe right now?",
         style = MaterialTheme.typography.bodyMedium,
@@ -282,7 +305,7 @@ private fun GraceContent(alertAt: Long, onSafe: () -> Unit, onExtend: () -> Unit
         labelColor = MaterialTheme.colorScheme.error,
     )
     SafeButton(onSafe)
-    OutlinedButton(onClick = onExtend, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+    AppOutlinedButton(onClick = onExtend, modifier = Modifier.fillMaxWidth().height(48.dp)) {
         Text("I need 10 more minutes")
     }
 }
@@ -317,7 +340,7 @@ private fun SentContent(state: SessionState.AlertSent, onSafe: () -> Unit, onDis
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    Button(
+    AppButton(
         onClick = onSafe,
         modifier = Modifier.fillMaxWidth().height(56.dp),
         colors = ButtonDefaults.buttonColors(
@@ -339,12 +362,12 @@ private fun FailedContent(message: String, onDismiss: () -> Unit) {
     )
     Text("Alert not sent", style = MaterialTheme.typography.headlineSmall)
     Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("OK") }
+    AppButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("OK") }
 }
 
 @Composable
 private fun SafeButton(onSafe: () -> Unit) {
-    Button(
+    AppButton(
         onClick = onSafe,
         modifier = Modifier.fillMaxWidth().height(64.dp),
         colors = ButtonDefaults.buttonColors(
